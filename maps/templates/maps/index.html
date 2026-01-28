@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phản ánh hiện trường</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; display: flex; height: 100vh; font-family: Arial, sans-serif; }
+        
+        /* 1. Thanh Sidebar bên trái (Form nhập liệu) */
+        #sidebar {
+            width: 350px;
+            background: #f8f9fa;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+        }
+        
+        /* 2. Phần Bản đồ bên phải */
+        #map { flex-grow: 1; height: 100%; }
+
+        /* Các ô nhập liệu */
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button {
+            width: 100%; padding: 10px; background: #28a745; color: white;
+            border: none; border-radius: 4px; cursor: pointer; font-size: 16px;
+        }
+        button:hover { background: #218838; }
+        
+        .coords { font-size: 0.9em; color: #666; margin-bottom: 10px; font-style: italic; }
+            /* CSS cho nút định vị */
+        .custom-map-control-button {
+            position: absolute;
+            bottom: 100px; /* Tăng từ 80px lên 100px để né nút Zoom */
+            right: 10px;
+            z-index: 1000;
+            
+            /* Các phần dưới giữ nguyên */
+            background-color: #fff;
+            border: none;
+            border-radius: 2px;
+            width: 40px;
+            height: 40px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .custom-map-control-button:hover {
+            background-color: #ebebeb; /* Màu xám nhẹ khi di chuột vào */
+        }
+
+        .custom-map-control-button svg {
+            width: 18px;
+            height: 18px;
+            fill: #666; /* Màu biểu tượng xám đậm */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2 style="color: #007bff; margin-top: 0;">Gửi Phản Ánh</h2>
+        
+        {% csrf_token %} 
+
+        <p style="font-size: 0.9em; color: #666;">Chọn các vị trí trên bản đồ để báo cáo.</p>
+        
+        <div class="form-group">
+            <label>Danh sách điểm:</label>
+            <div style="border: 1px solid #ced4da; border-radius: 4px; background: #fff; padding: 5px;">
+                <ul id="points-list" style="list-style: none; padding: 0; margin: 0; max-height: 150px; overflow-y: auto;">
+                    <li style="padding: 8px; color: #666; text-align: center; font-style: italic;" id="empty-msg">
+                        Chưa chọn điểm nào
+                    </li>
+                </ul>
+            </div>
+            <input type="hidden" id="points-data" name="points_data">
+        </div>
+
+        <div class="form-group">
+            <label>Tiêu đề:</label>
+            <input type="text" id="tieu_de" placeholder="Ví dụ: Nắp cống bị vỡ...">
+        </div>
+
+        <div class="form-group">
+            <label>Mô tả chi tiết:</label>
+            <textarea id="mo_ta" rows="4" placeholder="Mô tả tình trạng hư hỏng..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Hình ảnh hiện trường:</label>
+            <input type="file" id="hinh_anh" accept="image/*">
+        </div>
+
+        <button onclick="guiBaoCao()" style="background: #28a745; color: white;">Gửi Phản Ánh</button>
+    </div>
+
+    <div id="map"></div>
+
+    <button class="custom-map-control-button" onclick="locateUser()" title="Vị trí của tôi">
+    <svg viewBox="0 0 24 24">
+        <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+    </svg>
+    </button>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. Khởi tạo bản đồ
+        var map = L.map('map', {zoomControl: false}).setView([10.762622, 106.660172], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // --- QUẢN LÝ DANH SÁCH ĐIỂM ---
+        var markers = []; 
+
+        // Hàm vẽ lại danh sách
+        function renderPointsList() {
+            var listElement = document.getElementById('points-list');
+            var emptyMsg = document.getElementById('empty-msg');
+            var dataInput = document.getElementById('points-data');
+
+            listElement.innerHTML = ''; 
+
+            if (markers.length === 0) {
+                listElement.appendChild(emptyMsg);
+                emptyMsg.style.display = 'block';
+                dataInput.value = "";
+            } else {
+                markers.forEach(function(item, index) {
+                    var li = document.createElement('li');
+                    li.style.cssText = "border-bottom: 1px solid #eee; padding: 8px 5px; display: flex; justify-content: space-between; align-items: center; font-size: 13px;";
+
+                    var text = document.createElement('span');
+                    text.innerText = `#${index + 1}: ${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}`;
+                    
+                    var delBtn = document.createElement('button');
+                    delBtn.innerHTML = '&times;'; 
+                    delBtn.style.cssText = "width: 22px; height: 22px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-left: 10px; padding: 0;";
+                    
+                    delBtn.onclick = function() { removePoint(index); };
+
+                    li.appendChild(text);
+                    li.appendChild(delBtn);
+                    listElement.appendChild(li);
+                });
+
+                var pointsArray = markers.map(m => ({lat: m.lat, lng: m.lng}));
+                dataInput.value = JSON.stringify(pointsArray);
+            }
+        }
+
+        // Hàm thêm điểm mới (CÓ KIỂM TRA KHOẢNG CÁCH)
+        function addMarker(lat, lng) {
+            var newPoint = L.latLng(lat, lng); // Tạo đối tượng tọa độ mới
+
+            // --- KIỂM TRA KHOẢNG CÁCH (Quan trọng) ---
+            for (var i = 0; i < markers.length; i++) {
+                var existingPoint = L.latLng(markers[i].lat, markers[i].lng);
+                
+                // Tính khoảng cách giữa điểm mới và điểm cũ (đơn vị: mét)
+                var distance = map.distance(newPoint, existingPoint);
+
+                // Nếu gần hơn 10 mét -> Chặn luôn
+                if (distance < 10) {
+                    alert("Điểm này quá gần điểm đã chọn! Vui lòng chọn vị trí khác xa hơn.");
+                    return; // Dừng hàm, không thêm nữa
+                }
+            }
+
+            // --- NẾU ĐỦ XA THÌ MỚI THÊM ---
+            var newMarker = L.circleMarker([lat, lng], {
+                color: '#ffffff', fillColor: '#4285F4', fillOpacity: 1, radius: 8, weight: 2
+            }).addTo(map);
+            
+            markers.push({
+                marker: newMarker,
+                lat: lat,
+                lng: lng
+            });
+            
+            renderPointsList();
+        }
+
+        // Hàm Xóa 1 điểm
+        function removePoint(index) {
+            map.removeLayer(markers[index].marker); 
+            markers.splice(index, 1); 
+            renderPointsList(); 
+        }
+
+        // Sự kiện Click bản đồ
+        map.on('click', function(e) {
+            addMarker(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Định vị GPS
+        function locateUser() {
+            map.locate({setView: true, maxZoom: 16});
+        }
+        map.on('locationfound', function(e) {
+            addMarker(e.latlng.lat, e.latlng.lng);
+            L.popup().setLatLng(e.latlng).setContent("Bạn ở đây").openOn(map);
+        });
+        function guiBaoCao() {
+        // 1. Lấy dữ liệu từ Form
+        var tieude = document.getElementById('tieu_de').value;
+        var mota = document.getElementById('mo_ta').value;
+        var points = document.getElementById('points-data').value;
+        var hinhAnhFile = document.getElementById('hinh_anh').files[0];
+        
+        // Lấy mã bảo mật CSRF (Django bắt buộc)
+        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        // 2. Kiểm tra dữ liệu (Validate)
+        if (!points || points === "" || points === "[]") {
+            alert("Vui lòng chọn ít nhất 1 điểm trên bản đồ!");
+            return;
+        }
+        if (tieude.trim() === "") {
+            alert("Vui lòng nhập tiêu đề!");
+            return;
+        }
+
+        // 3. Đóng gói dữ liệu (Dùng FormData để gửi cả file ảnh)
+        var formData = new FormData();
+        formData.append('tieu_de', tieude);
+        formData.append('mo_ta', mota);
+        formData.append('points_data', points); // JSON chuỗi tọa độ
+        if (hinhAnhFile) {
+            formData.append('hinh_anh', hinhAnhFile);
+        }
+        // Gửi kèm mã bảo mật
+        formData.append('csrfmiddlewaretoken', csrfToken);
+
+        // 4. Gửi đi bằng fetch (Giống như Shipper chuyển hàng)
+        // Lưu ý: Đường dẫn '/luu-phan-anh/' phải khớp với urls.py
+        fetch('/luu-phan-anh/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json()) // Chờ server trả lời JSON
+        .then(data => {
+            if (data.success) {
+                alert("✅ Thành công: " + data.message);
+                // Gửi xong thì Reset form cho sạch sẽ
+                resetForm(); 
+            } else {
+                alert("❌ Lỗi: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("❌ Lỗi hệ thống! Vui lòng thử lại.");
+        });
+        }
+
+        // Hàm phụ: Làm sạch form sau khi gửi xong
+        function resetForm() {
+            document.getElementById('tieu_de').value = "";
+            document.getElementById('mo_ta').value = "";
+            document.getElementById('hinh_anh').value = "";
+            // Xóa hết các điểm trên bản đồ (Gọi hàm cũ)
+            markers.forEach(m => map.removeLayer(m.marker));
+            markers = [];
+            renderPointsList();
+        }
+    </script>
+</body>
+</html>
