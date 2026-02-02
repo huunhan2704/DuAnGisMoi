@@ -3,109 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phản ánh hiện trường - GIS</title>
+    <title>Bản đồ Phản ánh - Urban Manager</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: 'Segoe UI', sans-serif; }
+        .main-container { display: flex; flex: 1; overflow: hidden; position: relative; }
         
-        /* Khung chính chia đôi Sidebar và Map */
-        .main-container { 
-            display: flex; 
-            flex: 1; 
-            overflow: hidden; 
-            position: relative; /* Để làm neo cho nút GPS */
-        }
-
         #sidebar {
-            width: 350px;
-            background: #f8f9fa;
-            padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            width: 400px;
+            background: #ffffff;
+            padding: 25px;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+            z-index: 1000;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
             overflow-y: auto;
-            z-index: 1000;
-            border-right: 1px solid #dee2e6;
         }
 
-        /* Sửa lỗi khung trắng: Map phải chiếm toàn bộ phần còn lại */
-        #map { 
-            flex: 1; 
-            height: 100%; 
-            background: #e9ecef; /* Màu nền chờ khi bản đồ load */
-        }
+        #map { flex: 1; height: 100%; background: #e9ecef; }
 
-        /* Nút định vị GPS - Né nút Zoom */
         .custom-map-control-button {
-            position: absolute; 
-            bottom: 100px; 
-            right: 10px; 
-            z-index: 1000;
-            background-color: #fff; border: none; border-radius: 4px;
-            width: 40px; height: 40px; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+            position: absolute; bottom: 100px; right: 10px; z-index: 1000;
+            background-color: #fff; border: none; border-radius: 50%;
+            width: 44px; height: 44px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s;
         }
-        .custom-map-control-button:hover { background-color: #ebebeb; }
-        .custom-map-control-button svg { width: 22px; height: 22px; fill: #444; }
+        .custom-map-control-button:hover { background-color: #0d6efd; color: white; transform: translateY(-2px); }
+        .custom-map-control-button svg { width: 22px; height: 22px; fill: currentColor; }
 
-        /* Style cho danh sách điểm chọn */
         #points-list li {
-            background: white; border: 1px solid #dee2e6; border-radius: 5px;
-            margin-bottom: 5px; padding: 8px; display: flex; justify-content: space-between; align-items: center;
-            font-size: 13px;
+            background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;
+            margin-bottom: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center;
+            font-size: 14px; font-weight: 500;
         }
+
+        /* Popup đẹp hơn và rộng hơn chút để chứa nút chỉ đường */
+        .leaflet-popup-content-wrapper { border-radius: 8px; overflow: hidden; padding: 0; }
+        .leaflet-popup-content { margin: 0; width: 220px !important; }
+        .popup-header { background: #0d6efd; color: white; padding: 8px 10px; font-weight: bold; font-size: 14px; }
+        .popup-body { padding: 10px; text-align: center; }
+        .popup-img { width: 100%; height: 120px; object-fit: cover; border-radius: 4px; margin-top: 8px; border: 1px solid #ddd; }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-map-location-dot me-2"></i>GIS Phản Ánh</a>
-            <div class="d-flex">
-                <a href="#" class="btn btn-light text-primary fw-bold btn-sm">Đăng nhập</a>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm py-2">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold text-uppercase" href="{% url 'home' %}">
+                <i class="fa-solid fa-building me-2"></i>URBAN MANAGER
+            </a>
+            
+            <div class="d-flex gap-2">
+                <a href="{% url 'home' %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-house me-1"></i> Trang chủ</a>
+                <a href="{% url 'map_home' %}" class="btn btn-light text-primary fw-bold btn-sm shadow-sm"><i class="fa-solid fa-map me-1"></i> Bản đồ</a>
+                <a href="{% url 'list' %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-list me-1"></i> Danh sách</a>
+            </div>
+
+            <div class="ms-auto">
+                {% if user.is_authenticated %}
+                <div class="dropdown">
+                    <button class="btn btn-light text-primary fw-bold btn-sm dropdown-toggle border-0" type="button" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-user-circle me-1"></i> {{ user.username }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">🚪 Đăng xuất</a></li>
+                    </ul>
+                </div>
+                {% else %}
+                <a href="{% url 'login' %}" class="btn btn-light text-primary fw-bold btn-sm"><i class="fa-solid fa-user me-1"></i> Đăng nhập</a>
+                {% endif %}
             </div>
         </div>
     </nav>
 
     <div class="main-container">
-        
         <div id="sidebar">
-            <h5 class="mb-3 text-primary fw-bold"><i class="fa-solid fa-pen-to-square"></i> Gửi phản ánh</h5>
+            <h4 class="mb-4 text-primary fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>Gửi phản ánh mới</h4>
             
-            {% csrf_token %} 
-            <input type="hidden" id="points-data" name="points_data">
+            {% if user.is_authenticated %}
+                <input type="hidden" id="points-data" name="points_data">
 
-            <div class="mb-3">
-                <label class="form-label fw-bold small">Các điểm đã chọn:</label>
-                <div class="bg-white border rounded p-2" style="max-height: 150px; overflow-y: auto;">
-                    <ul id="points-list" class="list-unstyled m-0">
-                        <li class="text-center text-muted fst-italic small" id="empty-msg">
-                            Chưa chọn điểm nào (Click lên bản đồ)
-                        </li>
-                    </ul>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-secondary">Các điểm đã chọn</label>
+                    <div class="bg-light border rounded p-3 text-center" style="min-height: 80px;">
+                        <ul id="points-list" class="list-unstyled m-0 text-start">
+                            <li class="text-center text-muted fst-italic small py-2" id="empty-msg">
+                                <i class="fa-solid fa-computer-mouse me-1"></i> Click lên bản đồ để chọn vị trí
+                            </li>
+                        </ul>
+                    </div>
                 </div>
-            </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-bold small">Tiêu đề</label>
-                <input type="text" id="tieu_de" class="form-control" placeholder="Ví dụ: Nắp cống bị vỡ...">
-            </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-secondary">Tiêu đề</label>
+                    <input type="text" id="tieu_de" class="form-control" placeholder="Ví dụ: Nắp cống bị vỡ...">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-secondary">Mô tả</label>
+                    <textarea id="mo_ta" class="form-control" rows="3" placeholder="Mô tả chi tiết..."></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-secondary">Hình ảnh</label>
+                    <input type="file" id="hinh_anh" class="form-control" accept="image/*">
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-bold small">Mô tả</label>
-                <textarea id="mo_ta" class="form-control" rows="3" placeholder="Mô tả chi tiết..."></textarea>
-            </div>
+                <button onclick="guiBaoCao()" class="btn btn-success w-100 py-2 fw-bold shadow-sm mb-3">
+                    <i class="fa-solid fa-paper-plane me-2"></i> Gửi Phản Ánh
+                </button>
+                
+                {% csrf_token %} 
+            {% else %}
+                <div class="alert alert-warning text-center shadow-sm py-4">
+                    <i class="fa-solid fa-lock fa-3x mb-3 text-warning"></i><br>
+                    <strong class="fs-5">Bạn cần đăng nhập!</strong><br>
+                    <p class="small text-muted my-2">Vui lòng đăng nhập để gửi phản ánh.</p>
+                    <hr>
+                    <a href="{% url 'login' %}?next={% url 'map_home' %}" class="btn btn-primary w-100 fw-bold">Đăng nhập ngay</a>
+                    <div class="mt-3 small">Chưa có tài khoản? <a href="{% url 'register' %}" class="fw-bold">Đăng ký</a></div>
+                </div>
+            {% endif %}
 
-            <div class="mb-3">
-                <label class="form-label fw-bold small">Hình ảnh</label>
-                <input type="file" id="hinh_anh" class="form-control" accept="image/*">
+            <div class="mt-auto pt-3 border-top">
+                <a href="{% url 'list' %}" class="btn btn-outline-primary w-100 fw-bold py-2">
+                    <i class="fa-solid fa-table-list me-2"></i> Xem Danh Sách Hồ Sơ
+                </a>
             </div>
-
-            <button onclick="guiBaoCao()" class="btn btn-success w-100 py-2 fw-bold shadow-sm">
-                <i class="fa-solid fa-paper-plane me-1"></i> Gửi Phản Ánh
-            </button>
         </div>
 
         <div id="map"></div> 
@@ -113,117 +146,191 @@
         <button class="custom-map-control-button" onclick="locateUser()" title="Vị trí của tôi">
             <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
         </button>
+    </div> 
 
-    </div> <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
     <script>
-        // Khởi tạo Map
+        // 1. KHỞI TẠO MAP
         var map = L.map('map', {zoomControl: false}).setView([10.762622, 106.660172], 13);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
+        
+        // Tính năng tìm kiếm
+        L.Control.geocoder({ defaultMarkGeocode: false })
+        .on('markgeocode', function(e) {
+            var bbox = e.geocode.bbox;
+            var poly = L.polygon([bbox.getSouthEast(), bbox.getNorthEast(), bbox.getNorthWest(), bbox.getSouthWest()]);
+            map.fitBounds(poly.getBounds());
+        })
+        .addTo(map);
 
-        // QUAN TRỌNG: Ép bản đồ load lại để hết khung trắng
-        setTimeout(function() {
-            map.invalidateSize();
-        }, 500);
+        setTimeout(() => map.invalidateSize(), 500);
 
-        var markers = []; 
+        // 2. TẠO LỚP GOM NHÓM (CLUSTER)
+        var lopCanXuLy = L.markerClusterGroup({ disableClusteringAtZoom: 17 }).addTo(map);
+        var lopDaXong = L.markerClusterGroup({ disableClusteringAtZoom: 17 });
+
+        var overlayMaps = {
+            "<span class='text-danger fw-bold'>⚠️ Cần xử lý</span>": lopCanXuLy,
+            "<span class='text-success fw-bold'>✅ Lịch sử (Đã xong)</span>": lopDaXong
+        };
+        L.control.layers(null, overlayMaps, {position: 'topright'}).addTo(map);
+
+        // 3. LOGIC QUẢN LÝ ĐIỂM
+        var markers = []; // Mảng chứa các điểm vừa click (để gửi đi)
 
         function renderPointsList() {
-            var listElement = document.getElementById('points-list');
-            var emptyMsg = document.getElementById('empty-msg');
-            var dataInput = document.getElementById('points-data');
-            listElement.innerHTML = ''; 
+            var list = document.getElementById('points-list');
+            if (!list) return;
+            var empty = document.getElementById('empty-msg');
+            var input = document.getElementById('points-data');
+            
+            var items = list.querySelectorAll('li:not(#empty-msg)');
+            items.forEach(e => e.remove());
+
             if (markers.length === 0) {
-                listElement.appendChild(emptyMsg);
-                emptyMsg.style.display = 'block';
-                dataInput.value = "";
+                empty.style.display = 'block'; input.value = "";
             } else {
-                markers.forEach(function(item, index) {
+                empty.style.display = 'none';
+                markers.forEach((item, i) => {
                     var li = document.createElement('li');
-                    li.innerHTML = `<span><strong>#${index + 1}</strong>: ${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}</span>`;
-                    var delBtn = document.createElement('button');
-                    delBtn.innerHTML = '<i class="fa-solid fa-times"></i>'; 
-                    delBtn.className = 'btn btn-danger btn-sm';
-                    delBtn.onclick = function() { removePoint(index); };
-                    li.appendChild(delBtn);
-                    listElement.appendChild(li);
+                    li.innerHTML = `<span><strong class="text-primary">#${i + 1}</strong> (${item.lat.toFixed(4)}, ${item.lng.toFixed(4)})</span>`;
+                    
+                    var btn = document.createElement('button');
+                    btn.className = 'btn btn-outline-danger btn-sm border-0';
+                    btn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    btn.onclick = () => removePoint(i); // Nút xóa
+                    
+                    li.appendChild(btn); 
+                    list.appendChild(li);
                 });
-                dataInput.value = JSON.stringify(markers.map(m => ({lat: m.lat, lng: m.lng})));
+                input.value = JSON.stringify(markers.map(m => ({lat: m.lat, lng: m.lng})));
             }
         }
 
         function addMarker(lat, lng) {
-            var newPoint = L.latLng(lat, lng);
-            for (var i = 0; i < markers.length; i++) {
-                if (map.distance(newPoint, L.latLng(markers[i].lat, markers[i].lng)) < 10) {
-                    alert("⚠️ Điểm này quá gần điểm đã chọn!"); return;
-                }
-            }
-            var newMarker = L.circleMarker([lat, lng], {
-                color: '#ffffff', fillColor: '#0d6efd', fillOpacity: 1, radius: 8, weight: 2
-            }).addTo(map);
-            markers.push({ marker: newMarker, lat: lat, lng: lng });
+            var newM = L.circleMarker([lat, lng], { color: 'white', fillColor: '#0d6efd', fillOpacity: 1, radius: 8, weight: 2 });
+            lopCanXuLy.addLayer(newM);
+            markers.push({ marker: newM, lat: lat, lng: lng });
             renderPointsList();
         }
 
-        function removePoint(index) {
-            map.removeLayer(markers[index].marker); 
-            markers.splice(index, 1); 
-            renderPointsList(); 
+        function removePoint(i) {
+            lopCanXuLy.removeLayer(markers[i].marker);
+            markers.splice(i, 1);
+            renderPointsList();
         }
 
-        map.on('click', function(e) { addMarker(e.latlng.lat, e.latlng.lng); });
+        // --- ĐÂY LÀ PHẦN QUAN TRỌNG: CHỈ GIỮ LẠI 1 SỰ KIỆN CLICK ---
+        map.off('click'); // Xóa hết các sự kiện click cũ (nếu có) để tránh trùng
+        map.on('click', function(e) { 
+            // 1. Kiểm tra đăng nhập
+            if(!document.getElementById('points-data')) {
+                alert("🔒 Vui lòng đăng nhập để gửi phản ánh!");
+                return;
+            }
 
-        function locateUser() { map.locate({setView: true, maxZoom: 16}); }
-        map.on('locationfound', function(e) {
-            addMarker(e.latlng.lat, e.latlng.lng);
-            L.popup().setLatLng(e.latlng).setContent("📍 Bạn ở đây").openOn(map);
+            // 2. Kiểm tra trùng lặp (Khoảng cách < 10 mét)
+            var isDuplicate = false;
+            markers.forEach(function(item) {
+                var existingPoint = L.latLng(item.lat, item.lng);
+                var distance = e.latlng.distanceTo(existingPoint);
+                if (distance < 10) isDuplicate = true;
+            });
+
+            if (isDuplicate) {
+                alert("⚠️ Bạn đã chọn điểm này rồi!");
+            } else {
+                addMarker(e.latlng.lat, e.latlng.lng); 
+            }
         });
+
+        // 4. CÁC HÀM TIỆN ÍCH KHÁC
+        function locateUser() { map.locate({setView: true, maxZoom: 15}); }
+        map.on('locationfound', e => { L.popup().setLatLng(e.latlng).setContent("📍 Vị trí của bạn").openOn(map); });
 
         function guiBaoCao() {
             var tieude = document.getElementById('tieu_de').value;
             var points = document.getElementById('points-data').value;
-            if (!points || points === "[]") { alert("⚠️ Vui lòng chọn điểm!"); return; }
-            if (tieude.trim() === "") { alert("⚠️ Nhập tiêu đề!"); return; }
+            if (!points || points === "[]") { alert("⚠️ Chưa chọn điểm nào!"); return; }
+            if (!tieude) { alert("⚠️ Chưa nhập tiêu đề!"); return; }
 
             var btn = document.querySelector('button[onclick="guiBaoCao()"]');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
-            btn.disabled = true;
+            var oldText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...'; btn.disabled = true;
 
-            var formData = new FormData();
-            formData.append('tieu_de', tieude);
-            formData.append('mo_ta', document.getElementById('mo_ta').value);
-            formData.append('points_data', points);
-            if (document.getElementById('hinh_anh').files[0]) formData.append('hinh_anh', document.getElementById('hinh_anh').files[0]);
-            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            var fd = new FormData();
+            fd.append('tieu_de', tieude);
+            fd.append('mo_ta', document.getElementById('mo_ta').value);
+            fd.append('points_data', points);
+            if(document.getElementById('hinh_anh').files[0]) fd.append('hinh_anh', document.getElementById('hinh_anh').files[0]);
+            var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+            if(csrf) fd.append('csrfmiddlewaretoken', csrf.value);
 
-            fetch('/luu-phan-anh/', { method: 'POST', body: formData })
-            .then(r => r.json()).then(data => {
-                if (data.success) { alert("✅ Gửi thành công!"); resetForm(); }
-                else alert("❌ Lỗi: " + data.message);
-            })
-            .catch(() => alert("❌ Lỗi hệ thống!"))
-            .finally(() => { btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Gửi Phản Ánh'; btn.disabled = false; });
+            fetch('/luu-phan-anh/', { method: 'POST', body: fd })
+            .then(r => r.json()).then(d => {
+                if(d.success) { alert("✅ Gửi thành công!"); location.reload(); }
+                else alert("❌ Lỗi: " + d.message);
+            }).catch(() => alert("❌ Lỗi mạng!")).finally(() => { btn.innerHTML = oldText; btn.disabled = false; });
         }
 
-        function resetForm() {
-            document.getElementById('tieu_de').value = "";
-            document.getElementById('mo_ta').value = "";
-            document.getElementById('hinh_anh').value = "";
-            markers.forEach(m => map.removeLayer(m.marker));
-            markers = []; renderPointsList();
-        }
+        // 5. LOAD DỮ LIỆU CŨ TỪ DATABASE
+        try {
+            var allData = [
+                {% for p in phan_anh %}
+                    { 
+                        title: "{{ p.tieu_de }}", 
+                        image: "{% if p.hinh_anh %}{{ p.hinh_anh.url }}{% endif %}",
+                        status_text: "{{ p.get_trang_thai_display }}",
+                        status_code: "{{ p.trang_thai }}",
+                        coords: {{ p.du_lieu_toa_do|safe|default:"[]" }} 
+                    },
+                {% endfor %}
+            ];
 
-        // Hiện điểm cũ
-        {% for p in phan_anh %}
-            L.marker([{{ p.location.y|stringformat:"f" }}, {{ p.location.x|stringformat:"f" }}]).addTo(map).bindPopup("<b>{{ p.title }}</b>");
-        {% endfor %}
+            allData.forEach(function(item) {
+                if (Array.isArray(item.coords)) {
+                    item.coords.forEach(function(c) {
+                        var color = '#dc3545'; 
+                        var targetLayer = lopCanXuLy; 
+
+                        if (item.status_code === 'da_xu_ly') {
+                            color = '#198754'; targetLayer = lopDaXong;
+                        } else if (item.status_code === 'dang_xu_ly') {
+                            color = '#ffc107'; 
+                        }
+
+                        var googleMapsLink = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
+
+                        var popupContent = `
+                            <div class="popup-header">${item.title}</div>
+                            <div class="popup-body">
+                                <span class="badge text-dark popup-status mb-2" style="background:${color}; color:white!important;">
+                                    ${item.status_text}
+                                </span>
+                                ${ item.image ? `<img src="${item.image}" class="popup-img">` : '' }
+                                
+                                <hr class="my-2">
+                                
+                                <a href="${googleMapsLink}" target="_blank" class="btn btn-sm btn-outline-primary w-100 fw-bold">
+                                    <i class="fa-solid fa-directions me-1"></i> Chỉ đường đến đây
+                                </a>
+                            </div>
+                        `;
+
+                        var marker = L.circleMarker([c.lat, c.lng], {
+                            color: 'white', fillColor: color, fillOpacity: 1, radius: 8, weight: 2
+                        }).bindPopup(popupContent);
+                        
+                        targetLayer.addLayer(marker);
+                    });
+                }
+            });
+        } catch (e) { console.log(e); }
     </script>
 </body>
 </html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hồ sơ cá nhân</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'home' %}"><i class="fas fa-city me-2"></i>URBAN MANAGER</a>
+            <div class="ms-auto">
+                <a href="{% url 'map_home' %}" class="btn btn-light btn-sm fw-bold text-primary">
+                    <i class="fas fa-map me-1"></i> Quay lại Bản đồ
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="row">
+            
+            <div class="col-md-4 mb-4">
+                <div class="card border-0 shadow-sm text-center p-4">
+                    <div class="mb-3 d-flex justify-content-center">
+                        {% if user.profile.avatar %}
+                            <img src="{{ user.profile.avatar.url }}" class="rounded-circle border border-3 border-primary shadow-sm" style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 120px; height: 120px; font-size: 50px;">
+                                {{ user.username|slice:":1"|upper }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <h4 class="fw-bold">{{ user.username }}</h4>
+                    <p class="text-muted small">{{ user.email|default:"Chưa cập nhật email" }}</p>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-around text-center">
+                        <div>
+                            <h5 class="fw-bold text-primary mb-0">{{ tong_so }}</h5>
+                            <small class="text-muted">Đã gửi</small>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold text-success mb-0">0</h5>
+                            <small class="text-muted">Đã xong</small>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="{% url 'edit_profile' %}" class="btn btn-outline-secondary w-100 mb-2">
+                            <i class="fas fa-user-edit me-1"></i> Chỉnh sửa thông tin
+                        </a>
+                        <a href="{% url 'logout' %}" class="btn btn-outline-danger w-100">Đăng xuất</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0 fw-bold"><i class="fas fa-history me-2 text-primary"></i>Lịch sử Phản ánh của bạn</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">Tiêu đề</th>
+                                        <th>Trạng thái</th>
+                                        <th>Thời gian</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in danh_sach %}
+                                    <tr>
+                                        <td class="ps-4 fw-bold text-primary">{{ item.tieu_de }}</td>
+                                        <td>
+                                            {% if item.trang_thai == 'cho_duyet' %}
+                                                <span class="badge bg-danger">Chờ duyệt</span>
+                                            {% elif item.trang_thai == 'dang_xu_ly' %}
+                                                <span class="badge bg-warning text-dark">Đang xử lý</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Đã xong</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-muted small">Vừa xong</td>
+                                        <td>
+                                            <a href="{% url 'chi_tiet' item.id %}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted">
+                                            Bạn chưa gửi phản ánh nào.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

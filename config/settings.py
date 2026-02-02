@@ -125,3 +125,4 @@ import os
 
 MEDIA_URL = '/media/'  # Đường dẫn trên trình duyệt
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Thư mục thật trên máy tính
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
