@@ -48,7 +48,7 @@
             font-size: 14px; font-weight: 500;
         }
 
-        /* Popup đẹp hơn và rộng hơn chút để chứa nút chỉ đường */
+        /* Popup đẹp hơn */
         .leaflet-popup-content-wrapper { border-radius: 8px; overflow: hidden; padding: 0; }
         .leaflet-popup-content { margin: 0; width: 220px !important; }
         .popup-header { background: #0d6efd; color: white; padding: 8px 10px; font-weight: bold; font-size: 14px; }
@@ -108,6 +108,11 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold small text-secondary">Tiêu đề</label>
                     <input type="text" id="tieu_de" class="form-control" placeholder="Ví dụ: Nắp cống bị vỡ...">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-secondary">Địa chỉ cụ thể</label>
+                    <input type="text" id="dia_chi" class="form-control" placeholder="Ví dụ: Số 10 đường Nguyễn Huệ...">
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold small text-secondary">Mô tả</label>
@@ -181,7 +186,7 @@
         L.control.layers(null, overlayMaps, {position: 'topright'}).addTo(map);
 
         // 3. LOGIC QUẢN LÝ ĐIỂM
-        var markers = []; // Mảng chứa các điểm vừa click (để gửi đi)
+        var markers = []; 
 
         function renderPointsList() {
             var list = document.getElementById('points-list');
@@ -203,7 +208,7 @@
                     var btn = document.createElement('button');
                     btn.className = 'btn btn-outline-danger btn-sm border-0';
                     btn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                    btn.onclick = () => removePoint(i); // Nút xóa
+                    btn.onclick = () => removePoint(i); 
                     
                     li.appendChild(btn); 
                     list.appendChild(li);
@@ -225,16 +230,14 @@
             renderPointsList();
         }
 
-        // --- ĐÂY LÀ PHẦN QUAN TRỌNG: CHỈ GIỮ LẠI 1 SỰ KIỆN CLICK ---
-        map.off('click'); // Xóa hết các sự kiện click cũ (nếu có) để tránh trùng
+        // --- SỰ KIỆN CLICK BẢN ĐỒ ---
+        map.off('click'); 
         map.on('click', function(e) { 
-            // 1. Kiểm tra đăng nhập
             if(!document.getElementById('points-data')) {
                 alert("🔒 Vui lòng đăng nhập để gửi phản ánh!");
                 return;
             }
 
-            // 2. Kiểm tra trùng lặp (Khoảng cách < 10 mét)
             var isDuplicate = false;
             markers.forEach(function(item) {
                 var existingPoint = L.latLng(item.lat, item.lng);
@@ -253,6 +256,7 @@
         function locateUser() { map.locate({setView: true, maxZoom: 15}); }
         map.on('locationfound', e => { L.popup().setLatLng(e.latlng).setContent("📍 Vị trí của bạn").openOn(map); });
 
+        // ===> HÀM GỬI BÁO CÁO (ĐÃ SỬA ĐỂ GỬI ĐỊA CHỈ) <===
         function guiBaoCao() {
             var tieude = document.getElementById('tieu_de').value;
             var points = document.getElementById('points-data').value;
@@ -265,6 +269,8 @@
 
             var fd = new FormData();
             fd.append('tieu_de', tieude);
+            // THÊM DÒNG NÀY ĐỂ GỬI ĐỊA CHỈ
+            fd.append('dia_chi', document.getElementById('dia_chi').value); 
             fd.append('mo_ta', document.getElementById('mo_ta').value);
             fd.append('points_data', points);
             if(document.getElementById('hinh_anh').files[0]) fd.append('hinh_anh', document.getElementById('hinh_anh').files[0]);
@@ -275,7 +281,7 @@
             .then(r => r.json()).then(d => {
                 if(d.success) { alert("✅ Gửi thành công!"); location.reload(); }
                 else alert("❌ Lỗi: " + d.message);
-            }).catch(() => alert("❌ Lỗi mạng!")).finally(() => { btn.innerHTML = oldText; btn.disabled = false; });
+            }).catch(() => alert("❌ Lỗi mạng! (Kiểm tra lại Server)")).finally(() => { btn.innerHTML = oldText; btn.disabled = false; });
         }
 
         // 5. LOAD DỮ LIỆU CŨ TỪ DATABASE
@@ -288,8 +294,8 @@
                         status_text: "{{ p.get_trang_thai_display }}",
                         status_code: "{{ p.trang_thai }}",
                         coords: {{ p.du_lieu_toa_do|safe|default:"[]" }} 
-                    },
-                {% endfor %}
+                    }
+                ,{% endfor %}
             ];
 
             allData.forEach(function(item) {
@@ -304,7 +310,8 @@
                             color = '#ffc107'; 
                         }
 
-                        var googleMapsLink = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
+                        // Sửa link Google Map chuẩn
+                        var googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}`;
 
                         var popupContent = `
                             <div class="popup-header">${item.title}</div>

@@ -9,25 +9,29 @@ urlpatterns = [
     # 2. Bản đồ
     path('ban-do/', views.map_home, name='map_home'),
 
-    # 3. Danh sách (Thêm cái này để nút "Danh sách" hoạt động)
+    # 3. Danh sách
     path('danh-sach/', views.list_view, name='list'),
 
-    # 4. Chức năng Tài khoản (Thêm logout để hết lỗi)
+    # 4. Chức năng Tài khoản
     path('dang-ky/', views.register_view, name='register'),
     path('dang-nhap/', views.login_view, name='login'),
     path('dang-xuat/', views.logout_view, name='logout'),
 
-    # 5. API
+    # 5. API và Quên mật khẩu
     path('luu-phan-anh/', views.luu_phan_anh, name='luu_phan_anh'),
     path('quen-mat-khau/', auth_views.PasswordResetView.as_view(template_name='maps/password_reset.html'), name='password_reset'),
     path('quen-mat-khau/xong/', auth_views.PasswordResetDoneView.as_view(template_name='maps/password_reset_done.html'), name='password_reset_done'),
     path('dat-lai-mat-khau/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='maps/password_reset_confirm.html'), name='password_reset_confirm'),
     path('dat-lai-mat-khau/thanh-cong/', auth_views.PasswordResetCompleteView.as_view(template_name='maps/password_reset_complete.html'), name='password_reset_complete'),
+    
     path('ho-so-cua-toi/', views.profile, name='profile'),
-    # 6. Đường dẫn cho chi tiết hồ sơ
-    path('chi-tiet/<int:id_ho_so>/', views.chi_tiet_ho_so, name='chi_tiet_ho_so'),
+    
+    # 6. ĐƯỜNG DẪN CHI TIẾT (KHAI BÁO CẢ 2 TÊN ĐỂ CHIỀU LÒNG CẢ 2 TRANG)
+    path('chi-tiet/<int:id_ho_so>/', views.chi_tiet_ho_so, name='chi_tiet'),       # Dòng này cho trang Profile
+    path('chi-tiet/<int:id_ho_so>/', views.chi_tiet_ho_so, name='chi_tiet_ho_so'), # Dòng này cho trang Quản lý hiện trường
+    
     path('chinh-sua-thong-tin/', views.edit_profile, name='edit_profile'),
+    
     # 8. Quản lý hiện trường
     path('quan-ly-hien-truong/', views.quan_ly_hien_truong, name='quan_ly_hien_truong'),
-
 ]

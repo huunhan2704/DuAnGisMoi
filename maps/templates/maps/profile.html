@@ -44,7 +44,7 @@
                             <small class="text-muted">Đã gửi</small>
                         </div>
                         <div>
-                            <h5 class="fw-bold text-success mb-0">0</h5>
+                            <h5 class="fw-bold text-success mb-0">--</h5>
                             <small class="text-muted">Đã xong</small>
                         </div>
                     </div>
@@ -69,6 +69,7 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th class="ps-4">Tiêu đề</th>
+                                        <th>Địa chỉ</th>
                                         <th>Trạng thái</th>
                                         <th>Thời gian</th>
                                         <th>Hành động</th>
@@ -78,6 +79,11 @@
                                     {% for item in danh_sach %}
                                     <tr>
                                         <td class="ps-4 fw-bold text-primary">{{ item.tieu_de }}</td>
+                                        
+                                        <td class="text-secondary small">
+                                            {{ item.dia_chi|default:"--" }}
+                                        </td>
+
                                         <td>
                                             {% if item.trang_thai == 'cho_duyet' %}
                                                 <span class="badge bg-danger">Chờ duyệt</span>
@@ -87,7 +93,11 @@
                                                 <span class="badge bg-success">Đã xong</span>
                                             {% endif %}
                                         </td>
-                                        <td class="text-muted small">Vừa xong</td>
+                                        
+                                        <td class="text-muted small">
+                                            {{ item.thoi_gian|date:"d/m/Y H:i" }}
+                                        </td>
+
                                         <td>
                                             <a href="{% url 'chi_tiet' item.id %}" class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
                                                 <i class="fas fa-eye"></i>
@@ -96,7 +106,7 @@
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="4" class="text-center py-4 text-muted">
+                                        <td colspan="5" class="text-center py-4 text-muted">
                                             Bạn chưa gửi phản ánh nào.
                                         </td>
                                     </tr>

@@ -53,6 +53,7 @@
                             <tr>
                                 <th class="ps-4">#ID</th>
                                 <th>Tiêu đề phản ánh</th>
+                                <th>Địa chỉ</th>
                                 <th>Mô tả hiện trường</th>
                                 <th>Hình ảnh</th>
                                 <th>Trạng thái</th>
@@ -63,6 +64,12 @@
                             <tr>
                                 <td class="ps-4 fw-bold text-secondary">#{{ p.id }}</td>
                                 <td class="fw-bold text-primary">{{ p.tieu_de }}</td>
+                                
+                                <td class="text-secondary small">
+                                    <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                    {{ p.dia_chi|default:"Chưa có địa chỉ" }}
+                                </td>
+
                                 <td>{{ p.mo_ta|truncatechars:50 }}</td>
                                 <td>
                                     {% if p.hinh_anh %}
@@ -83,7 +90,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="5" class="text-center py-5 text-muted">
+                                <td colspan="6" class="text-center py-5 text-muted">
                                     <i class="fas fa-folder-open fa-3x mb-3 text-secondary opacity-50"></i><br>
                                     Chưa có dữ liệu phản ánh nào.
                                 </td>

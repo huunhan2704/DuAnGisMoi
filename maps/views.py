@@ -62,12 +62,20 @@ def luu_phan_anh(request):
             tieude = request.POST.get('tieu_de')
             mota = request.POST.get('mo_ta')
             toado = request.POST.get('points_data')
+            
+            # ===> LẤY ĐỊA CHỈ DÂN NHẬP <===
+            diachi = request.POST.get('dia_chi') 
+            
             hinh = request.FILES.get('hinh_anh')
 
-            # Tạo đối tượng nhưng chưa lưu ngay
+            # Tạo đối tượng
             new_pa = PhanAnh(
                 tieu_de=tieude,
                 mo_ta=mota,
+                
+                # ===> LƯU VÀO DATABASE <===
+                dia_chi=diachi,
+                
                 du_lieu_toa_do=toado,
                 hinh_anh=hinh
             )
@@ -76,7 +84,7 @@ def luu_phan_anh(request):
             if request.user.is_authenticated:
                 new_pa.nguoi_gui = request.user
             
-            # Giờ mới lưu xuống Database
+            # Lưu xuống Database
             new_pa.save()
 
             return JsonResponse({'success': True, 'message': 'Gửi phản ánh thành công!'})

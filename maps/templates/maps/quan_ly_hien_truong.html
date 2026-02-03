@@ -43,12 +43,17 @@
                         </td>
                         <td>
                             <h5 class="fw-bold text-primary mb-1">{{ item.tieu_de }}</h5>
+                            
                             <small class="text-muted d-block mb-1">
                                 <i class="fas fa-map-marker-alt text-danger me-1"></i>
-                                {{ item.du_lieu_toa_do|truncatechars:20 }}
+                                {% if item.dia_chi %}
+                                    <span class="fw-bold text-dark">{{ item.dia_chi }}</span>
+                                {% else %}
+                                    <span class="toa-do-display" data-raw="{{ item.du_lieu_toa_do }}">Đang tải tọa độ...</span>
+                                {% endif %}
                             </small>
                             
-                            <a href="https://www.google.com/maps/search/?api=1&query={{ item.du_lieu_toa_do }}" target="_blank" class="text-decoration-none small text-success fw-bold">
+                            <a href="#" target="_blank" class="text-decoration-none small text-success fw-bold link-google-map">
                                 <i class="fas fa-external-link-alt me-1"></i>Xem trên Google Maps
                             </a>
                         </td>
@@ -56,7 +61,7 @@
                             <span class="badge bg-secondary">{{ item.thoi_gian|date:"d/m/Y" }}</span>
                         </td>
                         <td>
-                            <a href="{% url 'chi_tiet_ho_so' item.id %}" class="btn btn-outline-primary btn-sm px-3">
+                            <a href="{% url 'chi_tiet' item.id %}" class="btn btn-outline-primary btn-sm px-3">
                                 <i class="fas fa-eye me-1"></i> Xem hồ sơ
                             </a>
                         </td>
@@ -74,6 +79,45 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Tìm tất cả các ô chứa tọa độ
+        var coords = document.querySelectorAll('.toa-do-display');
+        
+        coords.forEach(function(el) {
+            try {
+                // Lấy dữ liệu thô: [{"lat":10..., "lng":106...}]
+                var raw = el.getAttribute('data-raw');
+                
+                // Chuyển từ chữ sang đối tượng JSON
+                var data = JSON.parse(raw);
+                
+                // Nếu có dữ liệu hợp lệ
+                if (data && data.length > 0) {
+                    var lat = data[0].lat;
+                    var lng = data[0].lng;
+                    
+                    // 1. Hiển thị lại cho đẹp (chỉ lấy 6 số thập phân)
+                    el.innerText = lat.toFixed(6) + ', ' + lng.toFixed(6);
+                    
+                    // 2. Tìm cái nút Google Map gần đó để sửa link
+                    var row = el.closest('td'); // Tìm ô cha
+                    var linkMap = row.querySelector('.link-google-map');
+                    
+                    if (linkMap) {
+                        // Tạo link Google Maps chuẩn
+                        // Format: https://www.google.com/maps?q=lat,lng
+                        linkMap.href = `https://www.google.com/maps?q=${lat},${lng}`;
+                    }
+                }
+            } catch (e) {
+                console.log("Lỗi xử lý tọa độ:", e);
+                el.innerText = "Lỗi dữ liệu tọa độ";
+            }
+        });
+    });
+</script>
 
 </body>
 </html>
