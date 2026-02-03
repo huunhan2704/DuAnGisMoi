@@ -25,6 +25,9 @@ urlpatterns = [
     path('dat-lai-mat-khau/thanh-cong/', auth_views.PasswordResetCompleteView.as_view(template_name='maps/password_reset_complete.html'), name='password_reset_complete'),
     path('ho-so-cua-toi/', views.profile, name='profile'),
     # 6. Đường dẫn cho chi tiết hồ sơ
-    path('chi-tiet/<int:id_ho_so>/', views.chi_tiet_ho_so, name='chi_tiet'),
+    path('chi-tiet/<int:id_ho_so>/', views.chi_tiet_ho_so, name='chi_tiet_ho_so'),
     path('chinh-sua-thong-tin/', views.edit_profile, name='edit_profile'),
+    # 8. Quản lý hiện trường
+    path('quan-ly-hien-truong/', views.quan_ly_hien_truong, name='quan_ly_hien_truong'),
+
 ]

@@ -131,3 +131,46 @@ def edit_profile(request):
         'profile_form': profile_form
     }
     return render(request, 'maps/edit_profile.html', context)
+# Bổ sung các hàm bị thiếu
+def trang_thong_ke(request):
+    from django.contrib.auth.models import User
+    tong_so = PhanAnh.objects.count()
+    cho_duyet = PhanAnh.objects.filter(trang_thai='cho_duyet').count()
+    dang_xu_ly = PhanAnh.objects.filter(trang_thai='dang_xu_ly').count()
+    da_xu_ly = PhanAnh.objects.filter(trang_thai='da_xu_ly').count()
+    ty_le = 0
+    if tong_so > 0: ty_le = round((da_xu_ly / tong_so) * 100, 1)
+
+    context = {'tong_so': tong_so, 'cho_duyet': cho_duyet, 'dang_xu_ly': dang_xu_ly, 'da_xu_ly': da_xu_ly, 'ty_le': ty_le, 'so_nguoi_dung': User.objects.count(), 'bai_moi': PhanAnh.objects.all().order_by('-id')[:5]}
+    return render(request, 'maps/thong_ke.html', context)
+
+@login_required
+def cap_nhat_trang_thai(request, id_phan_anh, trang_thai_moi):
+    phan_anh = get_object_or_404(PhanAnh, id=id_phan_anh)
+    phan_anh.trang_thai = trang_thai_moi
+    phan_anh.save()
+    return redirect('quan_ly_hien_truong')
+
+def api_get_points(request):
+    danh_sach = PhanAnh.objects.exclude(trang_thai='cho_duyet')
+    data = []
+    for item in danh_sach:
+        lat, lng = 0, 0
+        try:
+            if item.du_lieu_toa_do:
+                parts = item.du_lieu_toa_do.split(',')
+                lat, lng = float(parts[0].strip()), float(parts[1].strip())
+        except: pass
+        data.append({'id': item.id, 'title': item.tieu_de, 'lat': lat, 'lng': lng, 'status': item.trang_thai, 'image_url': item.hinh_anh.url if item.hinh_anh else '', 'detail_url': f"/chi-tiet/{item.id}/"})
+    return JsonResponse(data, safe=False)
+
+
+def quan_ly_hien_truong(request):
+    # Lấy các điểm ĐANG XỬ LÝ (đang thi công)
+    danh_sach = PhanAnh.objects.filter(trang_thai='dang_xu_ly').order_by('-thoi_gian')
+    
+    context = {
+        'danh_sach': danh_sach,
+        'so_luong': danh_sach.count()
+    }
+    return render(request, 'maps/quan_ly_hien_truong.html', context)
