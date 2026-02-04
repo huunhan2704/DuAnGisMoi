@@ -11,6 +11,7 @@ from .models import Profile
 import feedparser
 from datetime import datetime
 from bs4 import BeautifulSoup
+from django.contrib.auth.decorators import login_required
 
 # 1. Trang chủ
 def home(request):
@@ -175,7 +176,7 @@ def api_get_points(request):
         data.append({'id': item.id, 'title': item.tieu_de, 'lat': lat, 'lng': lng, 'status': item.trang_thai, 'image_url': item.hinh_anh.url if item.hinh_anh else '', 'detail_url': f"/chi-tiet/{item.id}/"})
     return JsonResponse(data, safe=False)
 
-
+@login_required(login_url='login')  
 def quan_ly_hien_truong(request):
     # Lấy các điểm ĐANG XỬ LÝ (đang thi công)
     danh_sach = PhanAnh.objects.filter(trang_thai='dang_xu_ly').order_by('-thoi_gian')
@@ -186,7 +187,7 @@ def quan_ly_hien_truong(request):
     }
     return render(request, 'maps/quan_ly_hien_truong.html', context)
 
-
+@login_required(login_url='login')   
 def tin_tuc(request):
     # Link RSS VnExpress
     rss_url = "https://vnexpress.net/rss/thoi-su.rss"
@@ -239,11 +240,15 @@ def tin_tuc(request):
 
     return render(request, 'maps/tin_tuc.html', {'news_list': posts})
 
+@login_required(login_url='login')  
 def huong_dan(request):
     return render(request, 'maps/huong_dan.html')
 
+
+@login_required(login_url='login')  
 def hotline(request):
     return render(request, 'maps/hotline.html')
+
 
 def xoa_phan_anh(request, pk):
     # 1. Tìm phản ánh theo ID và phải đúng là của người đang đăng nhập gửi (nguoi_gui=request.user)
