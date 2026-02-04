@@ -8,6 +8,9 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
 from .forms import DangKyForm, UserEditForm, ProfileEditForm 
 from .models import Profile
+import feedparser
+from datetime import datetime
+from bs4 import BeautifulSoup
 
 # 1. Trang chủ
 def home(request):
@@ -182,3 +185,76 @@ def quan_ly_hien_truong(request):
         'so_luong': danh_sach.count()
     }
     return render(request, 'maps/quan_ly_hien_truong.html', context)
+
+
+def tin_tuc(request):
+    # Link RSS VnExpress
+    rss_url = "https://vnexpress.net/rss/thoi-su.rss"
+    feed = feedparser.parse(rss_url)
+    
+    # Bộ lọc từ khóa (Giữ nguyên)
+    keywords = [
+        'giao thông', 'đô thị', 'ngập', 'kẹt xe', 'ùn tắc', 
+        'cầu', 'đường', 'hầm', 'chung cư', 'quy hoạch', 
+        'môi trường', 'rác', 'metro', 'xe buýt', 'vỉa hè',
+        'cây xanh', 'chiếu sáng', 'hcm', 'sài gòn', 'quận'
+    ]
+
+    posts = []
+    for entry in feed.entries:
+        content_to_check = (entry.title + entry.description).lower()
+        
+        if any(word in content_to_check for word in keywords):
+            # --- XỬ LÝ ẢNH BẰNG BEAUTIFULSOUP (MỚI & XỊN) ---
+            image_url = 'https://s1.vnecdn.net/vnexpress/restruct/i/v884/logo_default.jpg' # Hình mặc định
+            
+            # Dùng "cái muỗng" để múc nội dung HTML trong phần mô tả
+            soup = BeautifulSoup(entry.description, 'lxml')
+            
+            # Tìm thẻ <img> đầu tiên
+            img_tag = soup.find('img')
+            
+            # Nếu tìm thấy thẻ img và nó có thuộc tính src (link ảnh)
+            if img_tag and img_tag.get('src'):
+                image_url = img_tag.get('src')
+
+            # --- XỬ LÝ MÔ TẢ CHO SẠCH SẼ ---
+            # Dùng soup.get_text() để lấy toàn bộ chữ, bỏ hết các thẻ HTML thừa
+            summary_text = soup.get_text()
+            
+            # Cắt bỏ mấy cái chữ thừa ở cuối nếu có (ví dụ ">> Chi tiết")
+            if '>>' in summary_text:
+                summary_text = summary_text.split('>>')[0]
+
+            posts.append({
+                'title': entry.title,
+                'link': entry.link,
+                'published': entry.published,
+                'summary': summary_text.strip(), # Xóa khoảng trắng thừa đầu đuôi
+                'image': image_url
+            })
+
+        if len(posts) >= 12:
+            break
+
+    return render(request, 'maps/tin_tuc.html', {'news_list': posts})
+
+def huong_dan(request):
+    return render(request, 'maps/huong_dan.html')
+
+def hotline(request):
+    return render(request, 'maps/hotline.html')
+
+def xoa_phan_anh(request, pk):
+    # 1. Tìm phản ánh theo ID và phải đúng là của người đang đăng nhập gửi (nguoi_gui=request.user)
+    # Để tránh ông A xóa trộm bài của ông B
+    pa = get_object_or_404(PhanAnh, pk=pk, nguoi_gui=request.user)
+    
+    # 2. Kiểm tra trạng thái: Chỉ cho xóa khi "Chờ tiếp nhận"
+    if pa.trang_thai == 'cho_duyet':
+        pa.delete()
+        messages.success(request, "✅ Đã xóa phản ánh thành công!")
+    else:
+        messages.error(request, "⚠️ Không thể xóa phản ánh đang hoặc đã xử lý!")
+        
+    return redirect('profile')
