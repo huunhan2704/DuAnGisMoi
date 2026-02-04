@@ -34,4 +34,7 @@ urlpatterns = [
     
     # 8. Quản lý hiện trường
     path('quan-ly-hien-truong/', views.quan_ly_hien_truong, name='quan_ly_hien_truong'),
+    # 9. Xuất Excel
+    path('xuat-excel/', views.export_excel, name='export_excel'),
+
 ]
