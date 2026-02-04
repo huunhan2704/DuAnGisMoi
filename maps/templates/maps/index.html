@@ -106,7 +106,33 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-bold small text-secondary">Tiêu đề</label>
-                    <input type="text" id="tieu_de" class="form-control" placeholder="Ví dụ: Nắp cống bị vỡ...">
+                    <select id="tieu_de" class="form-select">
+                        <option value="" selected disabled>-- Chọn loại sự cố --</option>
+                        
+                        <optgroup label="Hạ tầng & Giao thông">
+                            <option value="Đường hư / Ổ gà">Đường hư / Ổ gà</option>
+                            <option value="Nắp cống hư hỏng">Nắp cống hư hỏng / Mất nắp</option>
+                            <option value="Biển báo hư hỏng">Biển báo hư hỏng</option>
+                        </optgroup>
+
+                        <optgroup label="Cây xanh & Môi trường">
+                            <option value="Cây ngã đổ">Cây xanh ngã đổ</option>
+                            <option value="Ngập nước">Ngập nước</option>
+                            <option value="Rác thải bừa bãi">Rác thải bừa bãi</option>
+                        </optgroup>
+
+                        <optgroup label="Điện & Chiếu sáng">
+                            <option value="Đèn đường hư">Đèn đường không sáng</option>
+                            <option value="Sự cố dây điện">Dây điện đứt / Sà thấp</option>
+                        </optgroup>
+
+                        <optgroup label="Khác">
+                            <option value="Lấn chiếm vỉa hè">Lấn chiếm vỉa hè</option>
+                            <option value="Khác">Sự cố khác</option>
+                        </optgroup>
+                    </select>
+                    
+                    <input type="text" id="input_khac" class="form-control mt-2" placeholder="Nhập tên sự cố cụ thể..." style="display: none;">
                 </div>
 
                 <div class="mb-3">
@@ -297,23 +323,56 @@
         map.on('locationfound', e => { L.popup().setLatLng(e.latlng).setContent("📍 Vị trí của bạn").openOn(map); });
 
         // ===> HÀM GỬI BÁO CÁO (ĐÃ SỬA ĐỂ GỬI ĐỊA CHỈ) <===
+        // --- MỚI: BẮT SỰ KIỆN KHI CHỌN DANH SÁCH ---
+    var selectElement = document.getElementById('tieu_de');
+    if (selectElement) {
+        selectElement.addEventListener('change', function() {
+            var inputKhac = document.getElementById('input_khac');
+            if (this.value === 'Khác') {
+                inputKhac.style.display = 'block';
+                inputKhac.focus();
+            } else {
+                inputKhac.style.display = 'none';
+                inputKhac.value = '';
+            }
+        });
+    }
+
+    // --- MỚI: HÀM GỬI BÁO CÁO ĐÃ NÂNG CẤP ---
         function guiBaoCao() {
-            var tieude = document.getElementById('tieu_de').value;
+            // 1. Xử lý tiêu đề thông minh
+            var selectVal = document.getElementById('tieu_de').value;
+            var tieude = selectVal;
+
+            // Nếu chọn "Khác" thì lấy giá trị từ ô nhập tay
+            if (selectVal === 'Khác') {
+                tieude = document.getElementById('input_khac').value;
+                if (!tieude || !tieude.trim()) { 
+                    alert("⚠️ Vui lòng nhập tên sự cố cụ thể vào ô bên dưới!");
+                    document.getElementById('input_khac').focus();
+                    return; 
+                }
+            } else if (!selectVal) {
+                alert("⚠️ Chưa chọn loại sự cố!"); return;
+            }
+
             var points = document.getElementById('points-data').value;
-            if (!points || points === "[]") { alert("⚠️ Chưa chọn điểm nào!"); return; }
-            if (!tieude) { alert("⚠️ Chưa nhập tiêu đề!"); return; }
+            if (!points || points === "[]") { alert("⚠️ Chưa chọn điểm nào trên bản đồ!"); return; }
 
             var btn = document.querySelector('button[onclick="guiBaoCao()"]');
             var oldText = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...'; btn.disabled = true;
 
             var fd = new FormData();
-            fd.append('tieu_de', tieude);
-            // THÊM DÒNG NÀY ĐỂ GỬI ĐỊA CHỈ
+            fd.append('tieu_de', tieude); // Gửi tiêu đề đã xử lý
             fd.append('dia_chi', document.getElementById('dia_chi').value); 
             fd.append('mo_ta', document.getElementById('mo_ta').value);
             fd.append('points_data', points);
-            if(document.getElementById('hinh_anh').files[0]) fd.append('hinh_anh', document.getElementById('hinh_anh').files[0]);
+            
+            if(document.getElementById('hinh_anh').files[0]) {
+                fd.append('hinh_anh', document.getElementById('hinh_anh').files[0]);
+            }
+            
             var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
             if(csrf) fd.append('csrfmiddlewaretoken', csrf.value);
 

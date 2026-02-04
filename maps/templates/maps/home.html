@@ -33,9 +33,10 @@
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item"><a class="nav-link active" href="#">Trang chủ</a></li>
                     <li class="nav-item"><a class="nav-link " href="{% url 'quan_ly_hien_truong' %}">Hiện trường</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#">Tin tức</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#">Hướng dẫn</a></li>
-                    
+                    <li class="nav-item"><a class="nav-link" href="{% url 'tin_tuc' %}">Tin tức</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'huong_dan' %}">Hướng dẫn</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'hotline' %}">Danh bạ Hotline</a></li>
+
                     {% if user.is_authenticated %}
                         <li class="nav-item dropdown ms-3">
                             <a class="nav-link dropdown-toggle fw-bold text-white btn btn-outline-light px-3 rounded-pill" href="#" role="button" data-bs-toggle="dropdown">

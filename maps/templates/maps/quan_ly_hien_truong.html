@@ -50,7 +50,7 @@
                                 {% if item.dia_chi %}
                                     <span class="fw-bold text-dark">{{ item.dia_chi }}</span>
                                 {% else %}
-                                    <span class="toa-do-display" data-raw="{{ item.du_lieu_toa_do }}">Đang tải tọa độ...</span>
+                                    <span class="toa-do-display" data-raw="{{ item.du_lieu_toa_do }}">Đang tải...</span>
                                 {% endif %}
                             </small>
                             
@@ -83,39 +83,78 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Tìm tất cả các ô chứa tọa độ
+        // 1. Xử lý hiển thị tọa độ (chỉ chạy cho những cái nào KHÔNG có địa chỉ)
         var coords = document.querySelectorAll('.toa-do-display');
-        
         coords.forEach(function(el) {
             try {
-                // Lấy dữ liệu thô: [{"lat":10..., "lng":106...}]
                 var raw = el.getAttribute('data-raw');
-                
-                // Chuyển từ chữ sang đối tượng JSON
                 var data = JSON.parse(raw);
-                
-                // Nếu có dữ liệu hợp lệ
+                if (data && data.length > 0) {
+                    el.innerText = data[0].lat.toFixed(6) + ', ' + data[0].lng.toFixed(6);
+                }
+            } catch (e) { el.innerText = "Chưa có tọa độ"; }
+        });
+
+        // 2. Xử lý Link Google Maps (Chạy cho TẤT CẢ các dòng)
+        // Vì item.du_lieu_toa_do vẫn có dù có địa chỉ hay không
+        var rows = document.querySelectorAll('tbody tr');
+        rows.forEach(function(row) {
+            var rawSpan = row.querySelector('.toa-do-display'); // Tìm span chứa data
+            // Nếu không tìm thấy span (nghĩa là đã hiện địa chỉ), ta phải lấy data từ đâu đó?
+            // À, ta nên gắn data-raw vào thẻ tr hoặc thẻ a luôn cho dễ.
+            
+            // CÁCH FIX ĐƠN GIẢN: Lấy link map dựa trên text tọa độ cũ? Hơi khó.
+            // Giải pháp: Script này chỉ hỗ trợ tốt cho cái cũ.
+            // Để hỗ trợ cả cái mới (có địa chỉ), mình cần parse lại data raw từ item.
+            // Nhưng item.dia_chi đã che mất toa-do-display.
+            
+            // => Tốt nhất là kệ nó. Link Google Map ở dưới vẫn cần tọa độ để chạy đúng.
+            // Để fix triệt để, ta cần in tọa độ ẩn ra HTML cho JS đọc.
+        });
+    });
+</script>
+
+<script>
+    {% for item in danh_sach %}
+        (function() {
+            // Tìm dòng tương ứng với item này (Dựa vào thứ tự hoặc ID thì tốt hơn, nhưng làm nhanh thì dùng loop JS)
+            // Cách đơn giản nhất: Render link trực tiếp bằng Django Template tag luôn cho khỏi dùng JS lằng nhằng
+        })();
+    {% endfor %}
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Lấy tất cả các dòng
+        var rows = document.querySelectorAll('tbody tr');
+        
+        // Dữ liệu thô từ Django (In ra mảng JS)
+        var dataList = [
+            {% for item in danh_sach %}
+                { 
+                    raw: '{{ item.du_lieu_toa_do|safe }}', 
+                    index: {{ forloop.counter0 }} 
+                },
+            {% endfor %}
+        ];
+
+        dataList.forEach(function(item) {
+            try {
+                var data = JSON.parse(item.raw);
                 if (data && data.length > 0) {
                     var lat = data[0].lat;
                     var lng = data[0].lng;
                     
-                    // 1. Hiển thị lại cho đẹp (chỉ lấy 6 số thập phân)
-                    el.innerText = lat.toFixed(6) + ', ' + lng.toFixed(6);
-                    
-                    // 2. Tìm cái nút Google Map gần đó để sửa link
-                    var row = el.closest('td'); // Tìm ô cha
-                    var linkMap = row.querySelector('.link-google-map');
-                    
-                    if (linkMap) {
-                        // Tạo link Google Maps chuẩn
-                        // Format: https://www.google.com/maps?q=lat,lng
-                        linkMap.href = `https://www.google.com/maps?q=${lat},${lng}`;
+                    // Tìm dòng tương ứng
+                    var row = rows[item.index];
+                    if(row) {
+                        var linkMap = row.querySelector('.link-google-map');
+                        if(linkMap) {
+                            linkMap.href = `http://googleusercontent.com/maps.google.com/8{lat},${lng}`;
+                        }
                     }
                 }
-            } catch (e) {
-                console.log("Lỗi xử lý tọa độ:", e);
-                el.innerText = "Lỗi dữ liệu tọa độ";
-            }
+            } catch(e) {}
         });
     });
 </script>

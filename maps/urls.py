@@ -34,7 +34,22 @@ urlpatterns = [
     
     # 8. Quản lý hiện trường
     path('quan-ly-hien-truong/', views.quan_ly_hien_truong, name='quan_ly_hien_truong'),
+<<<<<<< HEAD
     # 9. Xuất Excel
     path('xuat-excel/', views.export_excel, name='export_excel'),
 
+=======
+    
+    # 9. Trang tin tức
+    path('tin-tuc/', views.tin_tuc, name='tin_tuc'),
+    
+    # 10. Trang hướng dẫn
+    path('huong-dan/', views.huong_dan, name='huong_dan'),
+    
+    # 11. Trang danh bạ khẩn cấp 
+    path('danh-ba-khan-cap/', views.hotline, name='hotline'),
+    
+    # 12. Xóa phản ánh
+    path('xoa-phan-anh/<int:pk>/', views.xoa_phan_anh, name='xoa_phan_anh'),
+>>>>>>> 6fe3a3f119ccfc3cb466eb993879593336582991
 ]
