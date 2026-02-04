@@ -8,15 +8,14 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
 from .forms import DangKyForm, UserEditForm, ProfileEditForm 
 from .models import Profile
-<<<<<<< HEAD
+
 import csv
 from django.http import HttpResponse
-=======
 import feedparser
 from datetime import datetime
 from bs4 import BeautifulSoup
 from django.contrib.auth.decorators import login_required
->>>>>>> 6fe3a3f119ccfc3cb466eb993879593336582991
+
 
 # 1. Trang chủ
 def home(request):
@@ -192,7 +191,6 @@ def quan_ly_hien_truong(request):
     }
     return render(request, 'maps/quan_ly_hien_truong.html', context)
 
-<<<<<<< HEAD
 def export_excel(request):
     # 1. Cấu hình response là file CSV
     response = HttpResponse(content_type='text/csv')
@@ -218,7 +216,7 @@ def export_excel(request):
         ])
 
     return response
-=======
+
 @login_required(login_url='login')   
 def tin_tuc(request):
     # Link RSS VnExpress
@@ -295,4 +293,4 @@ def xoa_phan_anh(request, pk):
         messages.error(request, "⚠️ Không thể xóa phản ánh đang hoặc đã xử lý!")
         
     return redirect('profile')
->>>>>>> 6fe3a3f119ccfc3cb466eb993879593336582991
+
