@@ -4,159 +4,142 @@
     <meta charset="UTF-8">
     <title>Quản lý Điểm Đang Thi Công</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-light">
 
-<nav class="navbar navbar-dark bg-primary mb-4">
-    <div class="container">
-        <span class="navbar-brand fw-bold text-uppercase">Bảng Theo Dõi Thi Công</span>
-        <a href="{% url 'home' %}" class="btn btn-outline-light btn-sm">Về Dashboard</a>
-    </div>
-</nav>
-
-<div class="container">
-    <div class="alert alert-warning border-start border-warning border-5 shadow-sm">
-        <h4 class="alert-heading"><i class="fas fa-hard-hat me-2"></i>Đang thi công: {{ so_luong }} điểm</h4>
-        <p class="mb-0">Danh sách các điểm đang được bảo trì, sửa chữa trên địa bàn.</p>
-    </div>
-
-    <div class="card shadow">
-        <div class="card-body p-0">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Hình ảnh</th>
-                        <th>Thông tin sự cố</th>
-                        <th>Thời gian báo</th>
-                        <th>Chi tiết</th> </tr>
-                </thead>
-                <tbody>
-                    {% for item in danh_sach %}
-                    <tr>
-                        <td class="ps-4">
-                            {% if item.hinh_anh %}
-                                <img src="{{ item.hinh_anh.url }}" class="rounded" style="width: 100px; height: 70px; object-fit: cover; border: 1px solid #ddd;">
-                            {% else %}
-                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="width: 100px; height: 70px;">No IMG</div>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <h5 class="fw-bold text-primary mb-1">{{ item.tieu_de }}</h5>
-                            
-                            <small class="text-muted d-block mb-1">
-                                <i class="fas fa-map-marker-alt text-danger me-1"></i>
-                                {% if item.dia_chi %}
-                                    <span class="fw-bold text-dark">{{ item.dia_chi }}</span>
-                                {% else %}
-                                    <span class="toa-do-display" data-raw="{{ item.du_lieu_toa_do }}">Đang tải...</span>
-                                {% endif %}
-                            </small>
-                            
-                            <a href="#" target="_blank" class="text-decoration-none small text-success fw-bold link-google-map">
-                                <i class="fas fa-external-link-alt me-1"></i>Xem trên Google Maps
-                            </a>
-                        </td>
-                        <td>
-                            <span class="badge bg-secondary">{{ item.thoi_gian|date:"d/m/Y" }}</span>
-                        </td>
-                        <td>
-                            <a href="{% url 'chi_tiet' item.id %}" class="btn btn-outline-primary btn-sm px-3">
-                                <i class="fas fa-eye me-1"></i> Xem hồ sơ
-                            </a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="text-center py-5 text-muted">
-                            <i class="fas fa-check-circle fa-2x mb-3"></i><br>
-                            Hiện không có điểm nào đang thi công.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="bg-primary text-white p-3 shadow-sm d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0 fw-bold text-uppercase">
+            <i class="fas fa-hard-hat me-2"></i> Bảng Theo Dõi Thi Công
+        </h4>
+        
+        <div class="d-flex gap-2">
+            <a href="{% url 'home' %}" class="btn btn-outline-light btn-sm fw-bold">
+                <i class="fas fa-chart-line me-1"></i> Về Dashboard
+            </a>
+            <a href="{% url 'export_excel' %}" class="btn btn-success btn-sm fw-bold shadow-sm">
+                <i class="fas fa-file-excel me-1"></i> Xuất Báo Cáo
+            </a>
         </div>
     </div>
-</div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // 1. Xử lý hiển thị tọa độ (chỉ chạy cho những cái nào KHÔNG có địa chỉ)
-        var coords = document.querySelectorAll('.toa-do-display');
-        coords.forEach(function(el) {
-            try {
-                var raw = el.getAttribute('data-raw');
-                var data = JSON.parse(raw);
-                if (data && data.length > 0) {
-                    el.innerText = data[0].lat.toFixed(6) + ', ' + data[0].lng.toFixed(6);
-                }
-            } catch (e) { el.innerText = "Chưa có tọa độ"; }
-        });
+    <div class="container">
+        <div class="alert alert-warning border-start border-warning border-5 shadow-sm">
+            <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Đang thi công: <strong>{{ so_luong }}</strong> điểm</h4>
+            <p class="mb-0 text-muted">Danh sách các điểm đang được bảo trì, sửa chữa trên địa bàn.</p>
+        </div>
 
-        // 2. Xử lý Link Google Maps (Chạy cho TẤT CẢ các dòng)
-        // Vì item.du_lieu_toa_do vẫn có dù có địa chỉ hay không
-        var rows = document.querySelectorAll('tbody tr');
-        rows.forEach(function(row) {
-            var rawSpan = row.querySelector('.toa-do-display'); // Tìm span chứa data
-            // Nếu không tìm thấy span (nghĩa là đã hiện địa chỉ), ta phải lấy data từ đâu đó?
-            // À, ta nên gắn data-raw vào thẻ tr hoặc thẻ a luôn cho dễ.
+        <div class="card shadow border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Hình ảnh</th>
+                                <th>Thông tin sự cố</th>
+                                <th>Thời gian báo</th>
+                                <th>Chi tiết</th> 
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in danh_sach %}
+                            <tr>
+                                <td class="ps-4">
+                                    {% if item.hinh_anh %}
+                                        <img src="{{ item.hinh_anh.url }}" class="rounded shadow-sm" style="width: 100px; height: 70px; object-fit: cover; border: 1px solid #eee;">
+                                    {% else %}
+                                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded small" style="width: 100px; height: 70px;">No IMG</div>
+                                    {% endif %}
+                                </td>
+                                
+                                <td>
+                                    <h5 class="fw-bold text-primary mb-1">{{ item.tieu_de }}</h5>
+                                    
+                                    <small class="text-muted d-block mb-1">
+                                        <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                        {% if item.dia_chi %}
+                                            <span class="fw-bold text-dark">{{ item.dia_chi }}</span>
+                                        {% else %}
+                                            <span class="toa-do-display text-muted fst-italic" data-raw="{{ item.du_lieu_toa_do }}">Đang xác định...</span>
+                                        {% endif %}
+                                    </small>
+                                    
+                                    <a href="#" target="_blank" class="text-decoration-none small text-success fw-bold link-google-map" data-raw="{{ item.du_lieu_toa_do }}">
+                                        <i class="fas fa-external-link-alt me-1"></i>Xem trên Google Maps
+                                    </a>
+                                </td>
+
+                                <td>
+                                    <span class="badge bg-secondary">{{ item.thoi_gian|date:"d/m/Y" }}</span>
+                                </td>
+
+                                <td>
+                                    <a href="{% url 'chi_tiet' item.id %}" class="btn btn-outline-primary btn-sm px-3 shadow-sm">
+                                        <i class="fas fa-eye me-1"></i> Xem hồ sơ
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5 text-muted">
+                                    <i class="fas fa-check-circle fa-3x mb-3 text-success opacity-50"></i><br>
+                                    <span class="fw-bold">Tuyệt vời!</span><br>
+                                    Hiện không có điểm nào đang thi công.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
             
-            // CÁCH FIX ĐƠN GIẢN: Lấy link map dựa trên text tọa độ cũ? Hơi khó.
-            // Giải pháp: Script này chỉ hỗ trợ tốt cho cái cũ.
-            // Để hỗ trợ cả cái mới (có địa chỉ), mình cần parse lại data raw từ item.
-            // Nhưng item.dia_chi đã che mất toa-do-display.
-            
-            // => Tốt nhất là kệ nó. Link Google Map ở dưới vẫn cần tọa độ để chạy đúng.
-            // Để fix triệt để, ta cần in tọa độ ẩn ra HTML cho JS đọc.
-        });
-    });
-</script>
-
-<script>
-    {% for item in danh_sach %}
-        (function() {
-            // Tìm dòng tương ứng với item này (Dựa vào thứ tự hoặc ID thì tốt hơn, nhưng làm nhanh thì dùng loop JS)
-            // Cách đơn giản nhất: Render link trực tiếp bằng Django Template tag luôn cho khỏi dùng JS lằng nhằng
-        })();
-    {% endfor %}
-</script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Lấy tất cả các dòng
-        var rows = document.querySelectorAll('tbody tr');
-        
-        // Dữ liệu thô từ Django (In ra mảng JS)
-        var dataList = [
-            {% for item in danh_sach %}
-                { 
-                    raw: '{{ item.du_lieu_toa_do|safe }}', 
-                    index: {{ forloop.counter0 }} 
-                },
-            {% endfor %}
-        ];
-
-        dataList.forEach(function(item) {
-            try {
-                var data = JSON.parse(item.raw);
-                if (data && data.length > 0) {
-                    var lat = data[0].lat;
-                    var lng = data[0].lng;
+            // XỬ LÝ 1: Tạo link Google Maps chuẩn
+            var mapLinks = document.querySelectorAll('.link-google-map');
+            mapLinks.forEach(function(link) {
+                try {
+                    // Đọc dữ liệu JSON từ thuộc tính data-raw
+                    var raw = link.getAttribute('data-raw');
+                    var data = JSON.parse(raw);
                     
-                    // Tìm dòng tương ứng
-                    var row = rows[item.index];
-                    if(row) {
-                        var linkMap = row.querySelector('.link-google-map');
-                        if(linkMap) {
-                            linkMap.href = `http://googleusercontent.com/maps.google.com/8{lat},${lng}`;
-                        }
+                    if (data && data.length > 0) {
+                        var lat = data[0].lat;
+                        var lng = data[0].lng;
+                        // Tạo link Google Maps chuẩn (Mở được trên điện thoại và máy tính)
+                        link.href = `https://www.google.com/maps?q=${lat},${lng}`;
+                    } else {
+                        // Nếu dữ liệu tọa độ rỗng thì ẩn nút đi
+                        link.style.display = 'none';
                     }
+                } catch (e) {
+                    // Nếu lỗi parse JSON cũng ẩn luôn cho an toàn
+                    link.style.display = 'none';
                 }
-            } catch(e) {}
+            });
+
+            // XỬ LÝ 2: Hiển thị text tọa độ (cho những dòng thiếu địa chỉ)
+            var coordSpans = document.querySelectorAll('.toa-do-display');
+            coordSpans.forEach(function(span) {
+                try {
+                    var raw = span.getAttribute('data-raw');
+                    var data = JSON.parse(raw);
+                    if (data && data.length > 0) {
+                        // Làm tròn 5 số lẻ cho đẹp
+                        span.innerText = data[0].lat.toFixed(5) + ', ' + data[0].lng.toFixed(5);
+                    } else {
+                        span.innerText = "Chưa có dữ liệu vị trí";
+                    }
+                } catch (e) {
+                    span.innerText = "--";
+                }
+            });
+
         });
-    });
-</script>
+    </script>
 
 </body>
 </html>

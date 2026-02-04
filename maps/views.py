@@ -8,10 +8,14 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
 from .forms import DangKyForm, UserEditForm, ProfileEditForm 
 from .models import Profile
+
+import csv
+from django.http import HttpResponse
 import feedparser
 from datetime import datetime
 from bs4 import BeautifulSoup
 from django.contrib.auth.decorators import login_required
+
 
 # 1. Trang chủ
 def home(request):
@@ -187,6 +191,32 @@ def quan_ly_hien_truong(request):
     }
     return render(request, 'maps/quan_ly_hien_truong.html', context)
 
+def export_excel(request):
+    # 1. Cấu hình response là file CSV
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="bao_cao_su_co.csv"'
+    
+    # 2. Fix lỗi font tiếng Việt (BOM header)
+    response.write(u'\ufeff'.encode('utf8')) 
+
+    # 3. Tạo bút ghi
+    writer = csv.writer(response)
+    
+    # 4. Ghi dòng tiêu đề
+    writer.writerow(['ID', 'Tiêu đề', 'Tọa độ', 'Thời gian', 'Trạng thái'])
+
+    # 5. Lấy dữ liệu và ghi từng dòng
+    for pa in PhanAnh.objects.all().order_by('-id'):
+        writer.writerow([
+            pa.id, 
+            pa.tieu_de, 
+            pa.du_lieu_toa_do, 
+            pa.thoi_gian.strftime("%d/%m/%Y %H:%M"), 
+            pa.get_trang_thai_display()
+        ])
+
+    return response
+
 @login_required(login_url='login')   
 def tin_tuc(request):
     # Link RSS VnExpress
@@ -263,3 +293,4 @@ def xoa_phan_anh(request, pk):
         messages.error(request, "⚠️ Không thể xóa phản ánh đang hoặc đã xử lý!")
         
     return redirect('profile')
+
