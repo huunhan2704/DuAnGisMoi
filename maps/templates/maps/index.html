@@ -6,78 +6,110 @@
     <title>Bản đồ Phản ánh - Urban Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: 'Segoe UI', sans-serif; }
         .main-container { display: flex; flex: 1; overflow: hidden; position: relative; }
+        #sidebar { width: 400px; background: #ffffff; padding: 25px; box-shadow: 4px 0 15px rgba(0,0,0,0.05); z-index: 1000; border-right: 1px solid #e9ecef; display: flex; flex-direction: column; overflow-y: auto; }
+        #map { flex: 1; height: 100%; background: #e9ecef; position: relative; }
         
-        #sidebar {
-            width: 400px;
-            background: #ffffff;
-            padding: 25px;
-            box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+        /* --- 1. SEARCH BOX (CHÍNH XÁC LÀ GÓC TRÁI) --- */
+        #custom-search-box {
+            position: absolute;
+            top: 10px;      /* Cách mép trên 10px */
+            left: 10px;     /* Cách mép trái 10px (SÁT LỀ) */
+            z-index: 2000;  /* Nổi lên trên bản đồ */
+            background: transparent;
+            width: 320px;
+        }
+        
+        /* Style cho thanh tìm kiếm */
+        .leaflet-control-geocoder {
+            border-radius: 30px !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+            border: none !important;
+            margin: 0 !important;
+            background: white;
+        }
+        .leaflet-control-geocoder-form input {
+            border-radius: 30px !important;
+            padding-left: 15px !important;
+            height: 40px !important;
+            font-size: 14px !important;
+            width: 100% !important;
+            border: none !important;
+            outline: none !important;
+        }
+        .leaflet-control-geocoder-icon {
+            border-radius: 30px !important;
+            height: 40px !important;
+            width: 40px !important;
+            background-color: transparent !important;
+        }
+
+        /* --- 2. CÔNG CỤ PHÂN TÍCH (GÓC PHẢI) --- */
+        #gisToolCard {
+            position: absolute;
+            top: 10px;
+            right: 10px; 
             z-index: 1000;
-            border-right: 1px solid #e9ecef;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
+            width: 300px;
+            opacity: 0.98;
         }
 
-        #map { flex: 1; height: 100%; background: #e9ecef; }
-
-        .custom-map-control-button {
-            position: absolute; bottom: 100px; right: 10px; z-index: 1000;
-            background-color: #fff; border: none; border-radius: 50%;
-            width: 44px; height: 44px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: all 0.3s;
+        /* --- 3. NÚT TRẠNG THÁI (GÓC TRÁI - DƯỚI SEARCH) --- */
+        /* Đẩy Layer Control xuống dưới thanh Search */
+        .leaflet-top.leaflet-left {
+            margin-top: 60px !important; /* Đẩy xuống 60px */
+            margin-left: 10px !important;
         }
+        .leaflet-control-layers {
+            border: none !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+            border-radius: 8px !important;
+        }
+
+        /* Các style khác */
+        .custom-map-control-button { position: absolute; bottom: 100px; right: 10px; z-index: 1000; background-color: #fff; border: none; border-radius: 50%; width: 44px; height: 44px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
         .custom-map-control-button:hover { background-color: #0d6efd; color: white; transform: translateY(-2px); }
         .custom-map-control-button svg { width: 22px; height: 22px; fill: currentColor; }
-
-        #points-list li {
-            background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;
-            margin-bottom: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center;
-            font-size: 14px; font-weight: 500;
-        }
-
-        /* Popup đẹp hơn */
+        #points-list li { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; margin-bottom: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 500; }
         .leaflet-popup-content-wrapper { border-radius: 8px; overflow: hidden; padding: 0; }
         .leaflet-popup-content { margin: 0; width: 220px !important; }
         .popup-header { background: #0d6efd; color: white; padding: 8px 10px; font-weight: bold; font-size: 14px; }
         .popup-body { padding: 10px; text-align: center; }
         .popup-img { width: 100%; height: 120px; object-fit: cover; border-radius: 4px; margin-top: 8px; border: 1px solid #ddd; }
+
+        /* MULTI-SELECT */
+        .multi-select-btn { background: #fff; border: 1px solid #ced4da; color: #333; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 8px 12px; border-radius: 6px; }
+        .multi-select-btn:focus { border-color: #86b7fe; box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25); }
+        .multi-select-menu { width: 100%; max-height: 250px; overflow-y: auto; padding: 5px; font-size: 13px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,.1); }
+        .multi-select-item { padding: 8px 10px; cursor: pointer; display: flex; align-items: center; border-radius: 4px; transition: background 0.2s; border-bottom: 1px solid #f0f0f0; }
+        .multi-select-item:hover { background-color: #e9f2ff; }
+        .multi-select-item input { margin-right: 10px; cursor: pointer; accent-color: #0d6efd; width: 16px; height: 16px; }
+        .multi-select-item label { cursor: pointer; flex: 1; user-select: none; font-weight: 500; color: #495057; }
     </style>
 </head>
 <body>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm py-2">
         <div class="container-fluid px-4">
-            <a class="navbar-brand fw-bold text-uppercase" href="{% url 'home' %}">
-                <i class="fa-solid fa-building me-2"></i>URBAN MANAGER
-            </a>
-            
+            <a class="navbar-brand fw-bold text-uppercase" href="{% url 'home' %}"><i class="fa-solid fa-building me-2"></i>URBAN MANAGER</a>
             <div class="d-flex gap-2">
                 <a href="{% url 'home' %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-house me-1"></i> Trang chủ</a>
                 <a href="{% url 'map_home' %}" class="btn btn-light text-primary fw-bold btn-sm shadow-sm"><i class="fa-solid fa-map me-1"></i> Bản đồ</a>
                 <a href="{% url 'list' %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-list me-1"></i> Danh sách</a>
             </div>
-
             <div class="ms-auto">
                 {% if user.is_authenticated %}
                 <div class="dropdown">
-                    <button class="btn btn-light text-primary fw-bold btn-sm dropdown-toggle border-0" type="button" data-bs-toggle="dropdown">
-                        <i class="fa-solid fa-user-circle me-1"></i> {{ user.username }}
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow">
-                        <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">🚪 Đăng xuất</a></li>
-                    </ul>
+                    <button class="btn btn-light text-primary fw-bold btn-sm dropdown-toggle border-0" type="button" data-bs-toggle="dropdown"><i class="fa-solid fa-user-circle me-1"></i> {{ user.username }}</button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow"><li><a class="dropdown-item text-danger" href="{% url 'logout' %}">🚪 Đăng xuất</a></li></ul>
                 </div>
                 {% else %}
                 <a href="{% url 'login' %}" class="btn btn-light text-primary fw-bold btn-sm"><i class="fa-solid fa-user me-1"></i> Đăng nhập</a>
@@ -89,69 +121,45 @@
     <div class="main-container">
         <div id="sidebar">
             <h4 class="mb-4 text-primary fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>Gửi phản ánh mới</h4>
-            
             {% if user.is_authenticated %}
                 <input type="hidden" id="points-data" name="points_data">
-
                 <div class="mb-3">
                     <label class="form-label fw-bold small text-secondary">Các điểm đã chọn</label>
                     <div class="bg-light border rounded p-3 text-center" style="min-height: 80px;">
                         <ul id="points-list" class="list-unstyled m-0 text-start">
-                            <li class="text-center text-muted fst-italic small py-2" id="empty-msg">
-                                <i class="fa-solid fa-computer-mouse me-1"></i> Click lên bản đồ để chọn vị trí
-                            </li>
+                            <li class="text-center text-muted fst-italic small py-2" id="empty-msg"><i class="fa-solid fa-computer-mouse me-1"></i> Click lên bản đồ để chọn vị trí</li>
                         </ul>
                     </div>
                 </div>
-
                 <div class="mb-3">
                     <label class="form-label fw-bold small text-secondary">Tiêu đề</label>
                     <select id="tieu_de" class="form-select">
                         <option value="" selected disabled>-- Chọn loại sự cố --</option>
-                        
                         <optgroup label="Hạ tầng & Giao thông">
                             <option value="Đường hư / Ổ gà">Đường hư / Ổ gà</option>
                             <option value="Nắp cống hư hỏng">Nắp cống hư hỏng / Mất nắp</option>
                             <option value="Biển báo hư hỏng">Biển báo hư hỏng</option>
                         </optgroup>
-
                         <optgroup label="Cây xanh & Môi trường">
                             <option value="Cây ngã đổ">Cây xanh ngã đổ</option>
                             <option value="Ngập nước">Ngập nước</option>
                             <option value="Rác thải bừa bãi">Rác thải bừa bãi</option>
                         </optgroup>
-
                         <optgroup label="Điện & Chiếu sáng">
                             <option value="Đèn đường hư">Đèn đường không sáng</option>
                             <option value="Sự cố dây điện">Dây điện đứt / Sà thấp</option>
                         </optgroup>
-
                         <optgroup label="Khác">
                             <option value="Lấn chiếm vỉa hè">Lấn chiếm vỉa hè</option>
                             <option value="Khác">Sự cố khác</option>
                         </optgroup>
                     </select>
-                    
                     <input type="text" id="input_khac" class="form-control mt-2" placeholder="Nhập tên sự cố cụ thể..." style="display: none;">
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold small text-secondary">Địa chỉ cụ thể</label>
-                    <input type="text" id="dia_chi" class="form-control" placeholder="Ví dụ: Số 10 đường Nguyễn Huệ...">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold small text-secondary">Mô tả</label>
-                    <textarea id="mo_ta" class="form-control" rows="3" placeholder="Mô tả chi tiết..."></textarea>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label fw-bold small text-secondary">Hình ảnh</label>
-                    <input type="file" id="hinh_anh" class="form-control" accept="image/*">
-                </div>
-
-                <button onclick="guiBaoCao()" class="btn btn-success w-100 py-2 fw-bold shadow-sm mb-3">
-                    <i class="fa-solid fa-paper-plane me-2"></i> Gửi Phản Ánh
-                </button>
-                
+                <div class="mb-3"><label class="form-label fw-bold small text-secondary">Địa chỉ cụ thể</label><input type="text" id="dia_chi" class="form-control" placeholder="Ví dụ: Số 10 đường Nguyễn Huệ..."></div>
+                <div class="mb-3"><label class="form-label fw-bold small text-secondary">Mô tả</label><textarea id="mo_ta" class="form-control" rows="3" placeholder="Mô tả chi tiết..."></textarea></div>
+                <div class="mb-4"><label class="form-label fw-bold small text-secondary">Hình ảnh</label><input type="file" id="hinh_anh" class="form-control" accept="image/*"></div>
+                <button onclick="guiBaoCao()" class="btn btn-success w-100 py-2 fw-bold shadow-sm mb-3"><i class="fa-solid fa-paper-plane me-2"></i> Gửi Phản Ánh</button>
                 {% csrf_token %} 
             {% else %}
                 <div class="alert alert-warning text-center shadow-sm py-4">
@@ -163,59 +171,53 @@
                     <div class="mt-3 small">Chưa có tài khoản? <a href="{% url 'register' %}" class="fw-bold">Đăng ký</a></div>
                 </div>
             {% endif %}
+            <div class="mt-auto pt-3 border-top"><a href="{% url 'list' %}" class="btn btn-outline-primary w-100 fw-bold py-2"><i class="fa-solid fa-table-list me-2"></i> Xem Danh Sách Hồ Sơ</a></div>
+        </div>
 
-            <div class="mt-auto pt-3 border-top">
-                <a href="{% url 'list' %}" class="btn btn-outline-primary w-100 fw-bold py-2">
-                    <i class="fa-solid fa-table-list me-2"></i> Xem Danh Sách Hồ Sơ
-                </a>
+        <div id="map">
+            <div id="custom-search-box"></div>
+        </div> 
+        
+        <div class="card shadow position-absolute" id="gisToolCard">
+            <div class="card-header bg-white text-primary fw-bold border-bottom d-flex justify-content-between align-items-center py-2">
+                <span><i class="fa-solid fa-toolbox me-2"></i>Công cụ Phân tích</span>
+                <div>
+                    <button class="btn btn-sm btn-outline-danger border-0 me-1" onclick="exitGisMode()" title="Thoát chế độ & Hiện tất cả">
+                        <i class="fa-solid fa-power-off"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleGisPanel()" title="Thu nhỏ/Mở rộng">
+                        <i id="iconToggle" class="fa-solid fa-minus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-3" id="gisToolsBody">
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="toggleHeatmap" style="cursor: pointer;">
+                    <label class="form-check-label fw-bold" for="toggleHeatmap">🔥 Biểu đồ nhiệt (Đồng bộ)</label>
+                </div>
+                <hr class="text-muted">
+                
+                <label class="fw-bold small text-muted text-uppercase mb-2">⭕ Quét vùng ảnh hưởng</label>
+                <div class="input-group input-group-sm mb-2"><input type="number" id="bufferRadius" class="form-control" value="500" placeholder="m"><span class="input-group-text">mét</span></div>
+                
+                <div class="mb-2">
+                    <div class="dropdown">
+                        <button class="btn multi-select-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="categoryDropdownBtn">
+                            <span>📍 Chọn loại sự cố đang xử lý...</span>
+                            <i class="fa-solid fa-chevron-down small text-muted"></i>
+                        </button>
+                        <div class="dropdown-menu multi-select-menu" id="categoryList">
+                            </div>
+                    </div>
+                </div>
+
+                <button id="btnBufferMode" class="btn btn-primary w-100 btn-sm fw-bold mb-2"><i class="fa-solid fa-crosshairs me-1"></i> Hoặc Click chọn tâm</button>
+                <div id="bufferResult" class="mt-2 text-danger fw-bold small text-center"></div>
+                <button id="btnExportBuffer" class="btn btn-success w-100 btn-sm fw-bold mt-2 shadow-sm" style="display: none;" onclick="exportBufferReport()"><i class="fa-solid fa-file-excel me-1"></i> Xuất Báo Cáo</button>
             </div>
         </div>
 
-        <div id="map"></div> 
-   <div class="card shadow position-absolute" style="top: 20px; right: 60px; z-index: 1000; width: 280px; opacity: 0.95;">
-    
-    <div class="card-header bg-white text-primary fw-bold border-bottom d-flex justify-content-between align-items-center py-2">
-        <span><i class="fa-solid fa-toolbox me-2"></i>Công cụ Phân tích</span>
-        <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleGisPanel()" title="Thu nhỏ/Mở rộng">
-            <i id="iconToggle" class="fa-solid fa-minus"></i>
-        </button>
-    </div>
-
-    <div class="card-body p-3" id="gisToolsBody"> <div class="form-check form-switch mb-3">
-            <input class="form-check-input" type="checkbox" id="toggleHeatmap" style="cursor: pointer;">
-            <label class="form-check-label fw-bold" for="toggleHeatmap">🔥 Biểu đồ nhiệt</label>
-        </div>
-        
-        <hr class="text-muted">
-
-        <label class="fw-bold small text-muted text-uppercase mb-2">⭕ Quét vùng ảnh hưởng</label>
-        
-        <div class="input-group input-group-sm mb-2">
-            <input type="number" id="bufferRadius" class="form-control" value="500" placeholder="m">
-            <span class="input-group-text">mét</span>
-        </div>
-
-        <div class="mb-2">
-            <select id="selectHotspot" class="form-select form-select-sm">
-                <option value="">-- Chọn điểm đang xử lý --</option>
-            </select>
-        </div>
-
-        <button id="btnBufferMode" class="btn btn-primary w-100 btn-sm fw-bold mb-2">
-            <i class="fa-solid fa-crosshairs me-1"></i> Hoặc Click chọn tâm
-        </button>
-
-        <div id="bufferResult" class="mt-2 text-danger fw-bold small text-center"></div>
-
-        <button id="btnExportBuffer" class="btn btn-success w-100 btn-sm fw-bold mt-2 shadow-sm" style="display: none;" onclick="exportBufferReport()">
-            <i class="fa-solid fa-file-excel me-1"></i> Xuất Báo Cáo
-        </button>
-    </div>
-</div>
-
-        <button class="custom-map-control-button" onclick="locateUser()" title="Vị trí của tôi">
-            <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
-        </button>
+        <button class="custom-map-control-button" onclick="locateUser()" title="Vị trí của tôi"><svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></button>
     </div> 
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -224,14 +226,19 @@
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    
     <script>
-        // 1. KHỞI TẠO MAP
         var map = L.map('map', {zoomControl: false}).setView([10.762622, 106.660172], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         
-        // Tính năng tìm kiếm
-        L.Control.geocoder({ defaultMarkGeocode: false })
+        // --- 1. TẠO THANH TÌM KIẾM ---
+        var geocoder = L.Control.geocoder({ 
+            defaultMarkGeocode: false,
+            collapsed: false, 
+            placeholder: 'Tìm kiếm địa điểm...',
+            geocoder: L.Control.Geocoder.nominatim()
+        })
         .on('markgeocode', function(e) {
             var bbox = e.geocode.bbox;
             var poly = L.polygon([bbox.getSouthEast(), bbox.getNorthEast(), bbox.getNorthWest(), bbox.getSouthWest()]);
@@ -239,359 +246,318 @@
         })
         .addTo(map);
 
+        // --- 2. DI CHUYỂN THANH TÌM KIẾM VÀO CONTAINER Ở GÓC TRÁI ---
+        setTimeout(function() {
+            var geocoderContainer = geocoder.getContainer();
+            var searchBox = document.getElementById('custom-search-box');
+            if(searchBox && geocoderContainer) {
+                searchBox.appendChild(geocoderContainer);
+            }
+        }, 100);
+
         setTimeout(() => map.invalidateSize(), 500);
 
-        // 2. TẠO LỚP GOM NHÓM (CLUSTER)
-        var lopCanXuLy = L.markerClusterGroup({ disableClusteringAtZoom: 17 }).addTo(map);
-        var lopDaXong = L.markerClusterGroup({ disableClusteringAtZoom: 17 });
+        var lopChoDuyet = L.markerClusterGroup({ disableClusteringAtZoom: 17 }).addTo(map);
+        var lopDangXuLy = L.markerClusterGroup({ disableClusteringAtZoom: 17 }).addTo(map); 
+        var lopDaXong = L.markerClusterGroup({ disableClusteringAtZoom: 17 }).addTo(map);
 
         var overlayMaps = {
-            "<span class='text-danger fw-bold'>⚠️ Cần xử lý</span>": lopCanXuLy,
-            "<span class='text-success fw-bold'>✅ Lịch sử (Đã xong)</span>": lopDaXong
+            "<span class='text-danger fw-bold'>🔴 Chờ duyệt</span>": lopChoDuyet,
+            "<span class='text-warning fw-bold'>⚠️ Đang xử lý</span>": lopDangXuLy,
+            "<span class='text-success fw-bold'>✅ Đã xong</span>": lopDaXong
         };
-        L.control.layers(null, overlayMaps, {position: 'topright'}).addTo(map);
+        
+        // --- 3. LAYER CONTROL (GÓC TRÁI) ---
+        // Vị trí topleft sẽ tự động xếp dưới custom-search-box vì chúng ta đã dùng CSS đẩy margin-top
+        L.control.layers(null, overlayMaps, {position: 'topleft'}).addTo(map);
 
-        // 3. LOGIC QUẢN LÝ ĐIỂM
-        var markers = []; 
-
-        function renderPointsList() {
-            var list = document.getElementById('points-list');
-            if (!list) return;
-            var empty = document.getElementById('empty-msg');
-            var input = document.getElementById('points-data');
-            
-            var items = list.querySelectorAll('li:not(#empty-msg)');
-            items.forEach(e => e.remove());
-
-            if (markers.length === 0) {
-                empty.style.display = 'block'; input.value = "";
-            } else {
-                empty.style.display = 'none';
-                markers.forEach((item, i) => {
-                    var li = document.createElement('li');
-                    li.innerHTML = `<span><strong class="text-primary">#${i + 1}</strong> (${item.lat.toFixed(4)}, ${item.lng.toFixed(4)})</span>`;
-                    
-                    var btn = document.createElement('button');
-                    btn.className = 'btn btn-outline-danger btn-sm border-0';
-                    btn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                    btn.onclick = () => removePoint(i); 
-                    
-                    li.appendChild(btn); 
-                    list.appendChild(li);
-                });
-                input.value = JSON.stringify(markers.map(m => ({lat: m.lat, lng: m.lng})));
-            }
-        }
-
-        function addMarker(lat, lng) {
-            var newM = L.circleMarker([lat, lng], { color: 'white', fillColor: '#0d6efd', fillOpacity: 1, radius: 8, weight: 2 });
-            lopCanXuLy.addLayer(newM);
-            markers.push({ marker: newM, lat: lat, lng: lng });
-            renderPointsList();
-        }
-
-        function removePoint(i) {
-            lopCanXuLy.removeLayer(markers[i].marker);
-            markers.splice(i, 1);
-            renderPointsList();
-        }
-
-        // --- SỰ KIỆN CLICK BẢN ĐỒ ---
-        map.off('click'); 
-        map.on('click', function(e) { 
-            if(!document.getElementById('points-data')) {
-                alert("🔒 Vui lòng đăng nhập để gửi phản ánh!");
-                return;
-            }
-
-            var isDuplicate = false;
-            markers.forEach(function(item) {
-                var existingPoint = L.latLng(item.lat, item.lng);
-                var distance = e.latlng.distanceTo(existingPoint);
-                if (distance < 10) isDuplicate = true;
-            });
-
-            if (isDuplicate) {
-                alert("⚠️ Bạn đã chọn điểm này rồi!");
-            } else {
-                addMarker(e.latlng.lat, e.latlng.lng); 
-            }
-        });
-
-        // 4. CÁC HÀM TIỆN ÍCH KHÁC
-        function locateUser() { map.locate({setView: true, maxZoom: 15}); }
-        map.on('locationfound', e => { L.popup().setLatLng(e.latlng).setContent("📍 Vị trí của bạn").openOn(map); });
-
-        // ===> HÀM GỬI BÁO CÁO (ĐÃ SỬA ĐỂ GỬI ĐỊA CHỈ) <===
-        // --- MỚI: BẮT SỰ KIỆN KHI CHỌN DANH SÁCH ---
-    var selectElement = document.getElementById('tieu_de');
-    if (selectElement) {
-        selectElement.addEventListener('change', function() {
-            var inputKhac = document.getElementById('input_khac');
-            if (this.value === 'Khác') {
-                inputKhac.style.display = 'block';
-                inputKhac.focus();
-            } else {
-                inputKhac.style.display = 'none';
-                inputKhac.value = '';
-            }
-        });
-    }
-
-    // --- MỚI: HÀM GỬI BÁO CÁO ĐÃ NÂNG CẤP ---
-        function guiBaoCao() {
-            // 1. Xử lý tiêu đề thông minh
-            var selectVal = document.getElementById('tieu_de').value;
-            var tieude = selectVal;
-
-            // Nếu chọn "Khác" thì lấy giá trị từ ô nhập tay
-            if (selectVal === 'Khác') {
-                tieude = document.getElementById('input_khac').value;
-                if (!tieude || !tieude.trim()) { 
-                    alert("⚠️ Vui lòng nhập tên sự cố cụ thể vào ô bên dưới!");
-                    document.getElementById('input_khac').focus();
-                    return; 
-                }
-            } else if (!selectVal) {
-                alert("⚠️ Chưa chọn loại sự cố!"); return;
-            }
-
-            var points = document.getElementById('points-data').value;
-            if (!points || points === "[]") { alert("⚠️ Chưa chọn điểm nào trên bản đồ!"); return; }
-
-            var btn = document.querySelector('button[onclick="guiBaoCao()"]');
-            var oldText = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...'; btn.disabled = true;
-
-            var fd = new FormData();
-            fd.append('tieu_de', tieude); // Gửi tiêu đề đã xử lý
-            fd.append('dia_chi', document.getElementById('dia_chi').value); 
-            fd.append('mo_ta', document.getElementById('mo_ta').value);
-            fd.append('points_data', points);
-            
-            if(document.getElementById('hinh_anh').files[0]) {
-                fd.append('hinh_anh', document.getElementById('hinh_anh').files[0]);
-            }
-            
-            var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
-            if(csrf) fd.append('csrfmiddlewaretoken', csrf.value);
-
-            fetch('/luu-phan-anh/', { method: 'POST', body: fd })
-            .then(r => r.json()).then(d => {
-                if(d.success) { alert("✅ Gửi thành công!"); location.reload(); }
-                else alert("❌ Lỗi: " + d.message);
-            }).catch(() => alert("❌ Lỗi mạng! (Kiểm tra lại Server)")).finally(() => { btn.innerHTML = oldText; btn.disabled = false; });
-        }
-
-        // 5. LOAD DỮ LIỆU CŨ TỪ DATABASE
-        try {
-            var allData = [
-                {% for p in phan_anh %}
-                    { 
-                        title: "{{ p.tieu_de }}", 
-                        image: "{% if p.hinh_anh %}{{ p.hinh_anh.url }}{% endif %}",
-                        status_text: "{{ p.get_trang_thai_display }}",
-                        status_code: "{{ p.trang_thai }}",
-                        coords: {{ p.du_lieu_toa_do|safe|default:"[]" }} 
+        function addSeamlessHeatmap(targetArray, coords) {
+            if (coords.length === 0) return;
+            if (coords.length === 1) { targetArray.push([coords[0].lat, coords[0].lng, 1.0]); return; }
+            for (let i = 0; i < coords.length; i++) {
+                targetArray.push([coords[i].lat, coords[i].lng, 1.0]);
+                if (i < coords.length - 1) {
+                    let p1 = coords[i], p2 = coords[i+1];
+                    for (let j = 1; j < 4; j++) { 
+                        let lat = p1.lat + (p2.lat - p1.lat) * (j / 4);
+                        let lng = p1.lng + (p2.lng - p1.lng) * (j / 4);
+                        targetArray.push([lat, lng, 1.0]); 
                     }
-                ,{% endfor %}
-            ];
+                }
+            }
+        }
 
-            allData.forEach(function(item) {
-                if (Array.isArray(item.coords)) {
+        var allData = [
+            {% for p in phan_anh %}
+                { 
+                    title: "{{ p.tieu_de|escapejs }}", 
+                    address: "{{ p.dia_chi|escapejs }}",
+                    desc: "{{ p.mo_ta|escapejs }}",
+                    // image: "{% if p.hinh_anh %}{{ request.scheme }}://{{ request.get_host }}{{ p.hinh_anh.url }}{% endif %}",
+                    status_text: "{{ p.get_trang_thai_display }}",
+                    status_code: "{{ p.trang_thai }}",
+                    coords: {{ p.du_lieu_toa_do|safe|default:"[]" }} 
+                }
+            ,{% endfor %}
+        ];
+
+        var arrChoDuyet = [], arrDangXuLy = [], arrDaXong = [];
+        var heatLayerChoDuyet, heatLayerDangXuLy, heatLayerDaXong;
+
+        function renderMap(dataToRender) {
+            lopChoDuyet.clearLayers(); lopDangXuLy.clearLayers(); lopDaXong.clearLayers();
+            var tmpChoDuyet = [], tmpDangXuLy = [], tmpDaXong = [];
+
+            dataToRender.forEach(function(item) {
+                if (Array.isArray(item.coords) && item.coords.length > 0) {
+                    if (item.status_code === 'da_xu_ly') addSeamlessHeatmap(tmpDaXong, item.coords);
+                    else if (item.status_code === 'dang_xu_ly') addSeamlessHeatmap(tmpDangXuLy, item.coords);
+                    else addSeamlessHeatmap(tmpChoDuyet, item.coords);
+
                     item.coords.forEach(function(c) {
-                        var color = '#dc3545'; 
-                        var targetLayer = lopCanXuLy; 
-
-                        if (item.status_code === 'da_xu_ly') {
-                            color = '#198754'; targetLayer = lopDaXong;
-                        } else if (item.status_code === 'dang_xu_ly') {
-                            color = '#ffc107'; 
-                        }
-
-                        // Sửa link Google Map chuẩn
-                        var googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}`;
-
+                        var color = '#dc3545', targetLayer = lopChoDuyet;
+                        if (item.status_code === 'da_xu_ly') { color = '#198754'; targetLayer = lopDaXong; }
+                        else if (item.status_code === 'dang_xu_ly') { color = '#ffc107'; targetLayer = lopDangXuLy; }
+                        
+                        var googleMapsLink = `http://googleusercontent.com/maps.google.com/search/${c.lat},${c.lng}`;
                         var popupContent = `
                             <div class="popup-header">${item.title}</div>
                             <div class="popup-body">
-                                <span class="badge text-dark popup-status mb-2" style="background:${color}; color:white!important;">
-                                    ${item.status_text}
-                                </span>
+                                <span class="badge text-dark popup-status mb-2" style="background:${color}; color:white!important;">${item.status_text}</span>
                                 ${ item.image ? `<img src="${item.image}" class="popup-img">` : '' }
-                                
                                 <hr class="my-2">
-                                
-                                <a href="${googleMapsLink}" target="_blank" class="btn btn-sm btn-outline-primary w-100 fw-bold">
-                                    <i class="fa-solid fa-directions me-1"></i> Chỉ đường đến đây
-                                </a>
-                            </div>
-                        `;
-
-                        var marker = L.circleMarker([c.lat, c.lng], {
-                            color: 'white', fillColor: color, fillOpacity: 1, radius: 8, weight: 2
-                        }).bindPopup(popupContent);
-                        
+                                <a href="${googleMapsLink}" target="_blank" class="btn btn-sm btn-outline-primary w-100 fw-bold"><i class="fa-solid fa-directions me-1"></i> Chỉ đường</a>
+                            </div>`;
+                        var marker = L.circleMarker([c.lat, c.lng], { color: 'white', fillColor: color, fillOpacity: 1, radius: 8, weight: 2 }).bindPopup(popupContent);
                         targetLayer.addLayer(marker);
                     });
                 }
             });
-        } catch (e) { console.log(e); }
-    // --- 2. XỬ LÝ BUFFER & EXPORT (NÂNG CẤP) ---
-    var bufferLayer = null;
-    var isBufferMode = false;
-    var foundPointsData = []; // Biến lưu danh sách điểm tìm thấy để xuất báo cáo
 
-    // A. Hàm khởi chạy: Điền dữ liệu vào Dropdown
-    function initDropdown() {
-        var select = document.getElementById('selectHotspot');
-        allData.forEach(function(item, index) {
-            // Chỉ lấy những cái đang xử lý
-            if (item.status_code === 'dang_xu_ly' && Array.isArray(item.coords) && item.coords.length > 0) {
-                var opt = document.createElement('option');
-                opt.value = index; // Lưu index để dễ truy xuất
-                opt.innerText = `⚠️ ${item.title} (ID: ${index})`;
-                select.appendChild(opt);
-            }
-        });
-    }
-    // Gọi hàm này ngay khi tải trang
-    initDropdown();
-
-    // B. Xử lý khi chọn từ Dropdown (List)
-    document.getElementById('selectHotspot').addEventListener('change', function() {
-        var index = this.value;
-        if (index === "") return;
-
-        var item = allData[index];
-        if (item && item.coords.length > 0) {
-            var lat = item.coords[0].lat;
-            var lng = item.coords[0].lng;
-            var center = L.latLng(lat, lng);
+            arrChoDuyet = tmpChoDuyet; arrDangXuLy = tmpDangXuLy; arrDaXong = tmpDaXong;
+            if(heatLayerChoDuyet) heatLayerChoDuyet.setLatLngs(arrChoDuyet);
+            if(heatLayerDangXuLy) heatLayerDangXuLy.setLatLngs(arrDangXuLy);
+            if(heatLayerDaXong) heatLayerDaXong.setLatLngs(arrDaXong);
             
-            // Zoom tới đó
-            map.flyTo(center, 15);
-            
-            // Thực hiện quét luôn
-            performBufferAnalysis(center);
+            syncHeatmap(); 
         }
-    });
 
-    // C. Xử lý nút Click thủ công
-    document.getElementById('btnBufferMode').addEventListener('click', function() {
-        isBufferMode = true;
-        document.getElementById('map').style.cursor = 'crosshair';
-        
-        var btn = document.getElementById('btnBufferMode');
-        btn.innerHTML = '<i class="fa-solid fa-hand-pointer fa-bounce me-1"></i> Đang chờ click...';
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-warning', 'text-dark');
-    });
+        var heatConfig = { radius: 60, blur: 55, maxZoom: 17, minOpacity: 0.15 };
+        heatLayerChoDuyet = L.heatLayer([], { ...heatConfig, gradient: { 0.3: 'rgba(255,0,0,0.05)', 0.7: 'rgba(255,0,0,0.3)', 1.0: 'rgba(255,0,0,0.5)' } });
+        heatLayerDangXuLy = L.heatLayer([], { ...heatConfig, gradient: { 0.3: 'rgba(255,215,0,0.05)', 0.7: 'rgba(255,215,0,0.3)', 1.0: 'rgba(255,165,0,0.5)' } });
+        heatLayerDaXong = L.heatLayer([], { ...heatConfig, gradient: { 0.3: 'rgba(0,255,0,0.05)', 0.7: 'rgba(0,255,0,0.3)', 1.0: 'rgba(0,128,0,0.5)' } });
 
-    // D. Sự kiện Click bản đồ
-    map.on('click', function(e) {
-        if (!isBufferMode) return;
-        performBufferAnalysis(e.latlng);
-        
-        // Reset nút bấm
-        var btn = document.getElementById('btnBufferMode');
-        btn.innerHTML = '<i class="fa-solid fa-crosshairs me-1"></i> Hoặc Click chọn tâm';
-        btn.classList.add('btn-primary');
-        btn.classList.remove('btn-warning', 'text-dark');
-        
-        isBufferMode = false;
-        document.getElementById('map').style.cursor = '';
-    });
+        renderMap(allData);
 
-    // === HÀM CHÍNH: TÍNH TOÁN VÙNG ĐỆM ===
-    function performBufferAnalysis(center) {
-        var radiusMeters = parseFloat(document.getElementById('bufferRadius').value);
-        var radiusKm = radiusMeters / 1000;
+        function syncHeatmap() {
+            var isMasterOn = document.getElementById('toggleHeatmap').checked;
+            if (isMasterOn && map.hasLayer(lopChoDuyet)) { if (!map.hasLayer(heatLayerChoDuyet)) map.addLayer(heatLayerChoDuyet); } else { map.removeLayer(heatLayerChoDuyet); }
+            if (isMasterOn && map.hasLayer(lopDangXuLy)) { if (!map.hasLayer(heatLayerDangXuLy)) map.addLayer(heatLayerDangXuLy); } else { map.removeLayer(heatLayerDangXuLy); }
+            if (isMasterOn && map.hasLayer(lopDaXong)) { if (!map.hasLayer(heatLayerDaXong)) map.addLayer(heatLayerDaXong); } else { map.removeLayer(heatLayerDaXong); }
+        }
+        document.getElementById('toggleHeatmap').addEventListener('change', syncHeatmap);
+        map.on('overlayadd', syncHeatmap); map.on('overlayremove', syncHeatmap);
 
-        // 1. Vẽ hình tròn
-        if (bufferLayer) map.removeLayer(bufferLayer);
-        bufferLayer = L.circle(center, { color: 'red', fillColor: '#f03', fillOpacity: 0.15, radius: radiusMeters }).addTo(map);
+        // --- LOGIC PHÂN TÍCH ---
+        var bufferLayerGroup = L.layerGroup().addTo(map); 
+        var isBufferMode = false;
+        var foundPointsData = []; 
+        var selectedCategories = []; 
 
-        // 2. Tính toán (Dùng Turf.js)
-        var count = 0;
-        var centerPoint = turf.point([center.lng, center.lat]);
-        foundPointsData = []; // Reset danh sách tìm thấy
+        function initCategoryDropdown() {
+            var container = document.getElementById('categoryList');
+            var standardTypes = [
+                "Đường hư / Ổ gà", "Nắp cống hư hỏng", "Biển báo hư hỏng",
+                "Cây ngã đổ", "Ngập nước", "Rác thải bừa bãi",
+                "Đèn đường hư", "Sự cố dây điện", "Lấn chiếm vỉa hè", "Khác"
+            ];
+            var existingTypes = allData.map(item => item.title);
+            var allTypes = [...new Set([...standardTypes, ...existingTypes])].sort();
 
-        allData.forEach(function(item) {
-            if (Array.isArray(item.coords)) {
-                item.coords.forEach(function(c) {
-                    var checkPoint = turf.point([c.lng, c.lat]);
-                    var distance = turf.distance(centerPoint, checkPoint, {units: 'kilometers'});
-                    
-                    if (distance <= radiusKm) {
-                        count++;
-                        // Lưu lại thông tin để xuất báo cáo
-                        foundPointsData.push({
-                            title: item.title,
-                            lat: c.lat,
-                            lng: c.lng,
-                            status: item.status_text,
-                            dist: (distance * 1000).toFixed(0) // Khoảng cách tới tâm (mét)
+            allTypes.forEach(type => {
+                var div = document.createElement('div');
+                div.className = 'multi-select-item';
+                var checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = type;
+                checkbox.id = 'cat_' + type.replace(/\s+/g, '_');
+                checkbox.onchange = function() { updateSelectedCategories(); };
+                var label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.innerText = type;
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                div.onclick = function(e) { if (e.target.tagName !== 'INPUT') { checkbox.checked = !checkbox.checked; updateSelectedCategories(); } e.stopPropagation(); };
+                container.appendChild(div);
+            });
+        }
+        initCategoryDropdown();
+
+        function updateSelectedCategories() {
+            selectedCategories = [];
+            var checkboxes = document.querySelectorAll('#categoryList input:checked');
+            checkboxes.forEach(cb => selectedCategories.push(cb.value));
+
+            var btnText = document.querySelector('#categoryDropdownBtn span');
+            if (selectedCategories.length === 0) {
+                btnText.innerText = "📍 Chọn loại sự cố đang xử lý...";
+                exitGisMode(); // Reset nếu không chọn gì
+            } else {
+                btnText.innerText = `Đã chọn ${selectedCategories.length} loại`;
+                performBufferAnalysis();
+            }
+        }
+
+        document.getElementById('btnBufferMode').addEventListener('click', function() {
+            isBufferMode = true;
+            document.getElementById('map').style.cursor = 'crosshair';
+            this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Hãy chấm lên bản đồ...';
+            this.className = 'btn btn-warning w-100 btn-sm fw-bold mb-2';
+        });
+
+        map.on('click', function(e) {
+            if (isBufferMode) {
+                document.querySelectorAll('#categoryList input:checked').forEach(cb => cb.checked = false);
+                document.querySelector('#categoryDropdownBtn span').innerText = "📍 Chọn loại sự cố đang xử lý...";
+                selectedCategories = [];
+                bufferLayerGroup.clearLayers();
+                var rM = parseFloat(document.getElementById('bufferRadius').value);
+                L.circle(e.latlng, { color: 'red', fillColor: '#f03', fillOpacity: 0.1, radius: rM }).addTo(bufferLayerGroup);
+                analyzeData([e.latlng]); 
+                var btn = document.getElementById('btnBufferMode');
+                btn.innerHTML = '<i class="fa-solid fa-crosshairs me-1"></i> Hoặc Click chọn tâm';
+                btn.className = 'btn btn-primary w-100 btn-sm fw-bold mb-2';
+                isBufferMode = false; document.getElementById('map').style.cursor = '';
+                return;
+            }
+            if(!document.getElementById('points-data')) { alert("🔒 Vui lòng đăng nhập!"); return; }
+            addMarker(e.latlng.lat, e.latlng.lng); 
+        });
+
+        function exitGisMode() {
+            bufferLayerGroup.clearLayers();
+            isBufferMode = false;
+            document.getElementById('map').style.cursor = '';
+            selectedCategories = [];
+            document.querySelectorAll('#categoryList input:checked').forEach(cb => cb.checked = false);
+            document.querySelector('#categoryDropdownBtn span').innerText = "📍 Chọn loại sự cố đang xử lý...";
+            var btnBuffer = document.getElementById('btnBufferMode');
+            btnBuffer.innerHTML = '<i class="fa-solid fa-crosshairs me-1"></i> Hoặc Click chọn tâm';
+            btnBuffer.className = 'btn btn-primary w-100 btn-sm fw-bold mb-2';
+            document.getElementById('bufferResult').innerHTML = "";
+            document.getElementById('btnExportBuffer').style.display = 'none';
+            renderMap(allData);
+            document.getElementById('gisToolsBody').style.display = 'none';
+            document.getElementById('iconToggle').className = 'fa-solid fa-plus';
+        }
+
+        function performBufferAnalysis() {
+            var rM = parseFloat(document.getElementById('bufferRadius').value);
+            bufferLayerGroup.clearLayers(); 
+            var analysisCenters = [];
+
+            allData.forEach(item => {
+                if (item.status_code === 'dang_xu_ly' && selectedCategories.includes(item.title) && item.coords.length > 0) {
+                    var latLng = L.latLng(item.coords[0].lat, item.coords[0].lng);
+                    analysisCenters.push(latLng);
+                    L.circle(latLng, { color: 'red', fillColor: '#f03', fillOpacity: 0.1, radius: rM }).addTo(bufferLayerGroup);
+                }
+            });
+
+            if (analysisCenters.length > 0) {
+                var group = new L.featureGroup(analysisCenters.map(c => L.marker(c)));
+                map.fitBounds(group.getBounds().pad(0.2));
+            }
+            analyzeData(analysisCenters);
+        }
+
+        function analyzeData(centers) {
+            var rM = parseFloat(document.getElementById('bufferRadius').value);
+            var radiusKm = rM / 1000;
+            foundPointsData = []; var filteredMapData = []; 
+
+            allData.forEach(function(item) {
+                var keepItem = false;
+                var validCoords = [];
+
+                if (item.status_code === 'dang_xu_ly') {
+                    if (selectedCategories.length > 0) {
+                        if (selectedCategories.includes(item.title)) {
+                            keepItem = true; validCoords = item.coords;
+                        }
+                    } else if (isBufferMode) { }
+                } 
+                else {
+                    if (selectedCategories.length > 0 || isBufferMode) { keepItem = false; } 
+                    else { keepItem = true; validCoords = item.coords; }
+                }
+
+                if (!keepItem && isBufferMode && item.status_code === 'dang_xu_ly') {
+                     if (Array.isArray(item.coords)) {
+                        item.coords.forEach(function(c) {
+                            var pt = turf.point([c.lng, c.lat]);
+                            var isInside = centers.some(center => {
+                                var centerPt = turf.point([center.lng, center.lat]);
+                                return turf.distance(centerPt, pt, {units: 'kilometers'}) <= radiusKm;
+                            });
+                            if (isInside) { validCoords.push(c); keepItem = true; }
                         });
                     }
-                });
-            }
-        });
+                }
+                
+                if (keepItem) {
+                    filteredMapData.push({ ...item, coords: validCoords });
+                    if(validCoords.length > 0) {
+                         validCoords.forEach(c => {
+                             foundPointsData.push({ 
+                                 title: item.title, 
+                                 address: item.address,
+                                 desc: item.desc,
+                                 status: item.status_text, 
+                                 lat: c.lat, 
+                                 lng: c.lng, 
+                                 dist: "Trong vùng" 
+                             });
+                         });
+                    }
+                }
+            });
 
-        // 3. Hiển thị kết quả
-        document.getElementById('bufferResult').innerHTML = `Tìm thấy <b>${count}</b> sự cố trong bán kính ${radiusMeters}m`;
+            renderMap(filteredMapData); 
+
+            document.getElementById('bufferResult').innerHTML = `Tìm thấy <b>${foundPointsData.length}</b> điểm liên quan`;
+            document.getElementById('btnExportBuffer').style.display = (foundPointsData.length > 0) ? 'block' : 'none';
+        }
+
+        function exportBufferReport() {
+            if (foundPointsData.length === 0) { alert("Không có dữ liệu!"); return; }
+            var csv = "\uFEFFTên sự cố,Địa chỉ,Mô tả,Trạng thái,Khoảng cách (m),Vĩ độ,Kinh độ\n";
+            foundPointsData.forEach(r => { 
+                let cleanDesc = r.desc ? r.desc.replace(/"/g, '""') : "";
+                csv += `"${r.title}","${r.address}","${cleanDesc}","${r.status}","${r.dist}",${r.lat},${r.lng}\n`; 
+            });
+            var link = document.createElement("a");
+            link.href = encodeURI("data:text/csv;charset=utf-8," + csv); link.download = "baocao_phan_tich.csv";
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        function toggleGisPanel() { var b = document.getElementById('gisToolsBody'); var i = document.getElementById('iconToggle'); if (b.style.display === 'none') { b.style.display = 'block'; i.className = 'fa-solid fa-minus'; } else { b.style.display = 'none'; i.className = 'fa-solid fa-plus'; } }
         
-        // 4. Hiện nút Xuất Excel nếu có dữ liệu
-        var btnExport = document.getElementById('btnExportBuffer');
-        if (count > 0) {
-            btnExport.style.display = 'block';
-            btnExport.innerHTML = `<i class="fa-solid fa-file-excel me-1"></i> Xuất Báo Cáo (${count} điểm)`;
-        } else {
-            btnExport.style.display = 'none';
+        var markers = []; 
+        function renderPointsList() {
+            var list = document.getElementById('points-list'); if (!list) return;
+            var empty = document.getElementById('empty-msg'); var input = document.getElementById('points-data');
+            var items = list.querySelectorAll('li:not(#empty-msg)'); items.forEach(e => e.remove());
+            if (markers.length === 0) { empty.style.display = 'block'; input.value = ""; } 
+            else { empty.style.display = 'none'; markers.forEach((item, i) => { var li = document.createElement('li'); li.innerHTML = `<span><strong>#${i + 1}</strong> (${item.lat.toFixed(4)}, ${item.lng.toFixed(4)})</span>`; var btn = document.createElement('button'); btn.className = 'btn btn-outline-danger btn-sm border-0'; btn.innerHTML = '<i class="fa-solid fa-trash"></i>'; btn.onclick = () => removePoint(i); li.appendChild(btn); list.appendChild(li); }); input.value = JSON.stringify(markers.map(m => ({lat: m.lat, lng: m.lng}))); }
         }
-    }
-
-    // === HÀM XUẤT FILE CSV ===
-    function exportBufferReport() {
-        if (foundPointsData.length === 0) {
-            alert("Không có dữ liệu để xuất!");
-            return;
-        }
-
-        // Tạo nội dung CSV (Có BOM để Excel đọc tiếng Việt)
-        var csvContent = "\uFEFF"; 
-        csvContent += "Tên sự cố,Trạng thái,Khoảng cách tới tâm (m),Vĩ độ (Lat),Kinh độ (Lng)\n"; // Tiêu đề cột
-
-        foundPointsData.forEach(function(row) {
-            csvContent += `"${row.title}","${row.status}",${row.dist},${row.lat},${row.lng}\n`;
-        });
-
-        // Tạo file ảo để tải xuống
-        var encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
-        var link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "bao_cao_vung_dem.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-    // === HÀM THU NHỎ / MỞ RỘNG TOOL ===
-    function toggleGisPanel() {
-        var body = document.getElementById('gisToolsBody');
-        var icon = document.getElementById('iconToggle');
-        
-        if (body.style.display === 'none') {
-            // Nếu đang ẩn -> Hiện lên
-            body.style.display = 'block';
-            icon.classList.remove('fa-plus');
-            icon.classList.add('fa-minus'); // Đổi icon thành dấu trừ
-        } else {
-            // Nếu đang hiện -> Ẩn đi
-            body.style.display = 'none';
-            icon.classList.remove('fa-minus');
-            icon.classList.add('fa-plus'); // Đổi icon thành dấu cộng
-        }
-    }
+        function addMarker(lat, lng) { var newM = L.circleMarker([lat, lng], { color: 'white', fillColor: '#0d6efd', fillOpacity: 1, radius: 8, weight: 2 }); lopChoDuyet.addLayer(newM); markers.push({ marker: newM, lat: lat, lng: lng }); renderPointsList(); }
+        function removePoint(i) { lopChoDuyet.removeLayer(markers[i].marker); markers.splice(i, 1); renderPointsList(); }
+        function locateUser() { map.locate({setView: true, maxZoom: 15}); }
+        map.on('locationfound', e => { L.popup().setLatLng(e.latlng).setContent("📍 Vị trí của bạn").openOn(map); });
+        var selectElement = document.getElementById('tieu_de');
+        if (selectElement) { selectElement.addEventListener('change', function() { var inputKhac = document.getElementById('input_khac'); if (this.value === 'Khác') { inputKhac.style.display = 'block'; inputKhac.focus(); } else { inputKhac.style.display = 'none'; inputKhac.value = ''; } }); }
+        function guiBaoCao() { var selectVal = document.getElementById('tieu_de').value; var tieude = selectVal; if (selectVal === 'Khác') tieude = document.getElementById('input_khac').value; if (!tieude) { alert("⚠️ Chưa nhập tiêu đề!"); return; } var points = document.getElementById('points-data').value; if (!points || points === "[]") { alert("⚠️ Chưa chọn điểm!"); return; } var btn = document.querySelector('button[onclick="guiBaoCao()"]'); var oldText = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...'; btn.disabled = true; var fd = new FormData(); fd.append('tieu_de', tieude); fd.append('dia_chi', document.getElementById('dia_chi').value); fd.append('mo_ta', document.getElementById('mo_ta').value); fd.append('points_data', points); if(document.getElementById('hinh_anh').files[0]) fd.append('hinh_anh', document.getElementById('hinh_anh').files[0]); var csrf = document.querySelector('[name=csrfmiddlewaretoken]'); if(csrf) fd.append('csrfmiddlewaretoken', csrf.value); fetch('/luu-phan-anh/', { method: 'POST', body: fd }).then(r => r.json()).then(d => { if(d.success) { alert("✅ Gửi thành công!"); location.reload(); } else alert("❌ Lỗi: " + d.message); }).catch(() => alert("❌ Lỗi mạng!")).finally(() => { btn.innerHTML = oldText; btn.disabled = false; }); }
     </script>
 </body>
 </html>
