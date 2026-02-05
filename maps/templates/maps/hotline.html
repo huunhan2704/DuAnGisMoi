@@ -7,14 +7,17 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
+    <nav class="navbar navbar-dark bg-primary mb-4 shadow-sm">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{% url 'home' %}">URBAN MANAGER</a>
-            <div class="ms-auto">
-                <a href="{% url 'home' %}" class="btn btn-outline-light btn-sm">Quay lại Trang chủ</a>
-            </div>
+            <a class="navbar-brand fw-bold" href="{% url 'home' %}">
+                <i class="fas fa-city me-2"></i>URBAN MANAGER
+            </a>
+            <a href="{% url 'home' %}" class="btn btn-outline-light btn-sm">
+                <i class="fas fa-home me-1"></i> Trang chủ
+            </a>
         </div>
     </nav>
+
 
     <div class="container mb-5">
         <h2 class="text-center text-primary fw-bold mb-4"><i class="fa-solid fa-phone-volume me-2"></i>DANH BẠ KHẨN CẤP</h2>
