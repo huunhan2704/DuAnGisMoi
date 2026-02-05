@@ -105,7 +105,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Ho_Chi_Minh'
 
 USE_I18N = True
 
@@ -126,3 +126,4 @@ import os
 MEDIA_URL = '/media/'  # Đường dẫn trên trình duyệt
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Thư mục thật trên máy tính
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+LOGIN_URL = 'login'

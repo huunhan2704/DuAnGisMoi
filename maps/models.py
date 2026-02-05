@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-# --- 1. MODEL PHẢN ÁNH ---
+# 1. MODEL PHẢN ÁNH
 class PhanAnh(models.Model):
     # 1. Tiêu đề
     tieu_de = models.CharField(max_length=200, verbose_name="Tiêu đề")
@@ -42,7 +42,7 @@ class PhanAnh(models.Model):
         verbose_name = "Tin Phản Ánh"
         verbose_name_plural = "Danh sách Phản Ánh"
     
-# --- 2. MODEL PROFILE ---
+# 2. MODEL PROFILE
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     so_dien_thoai = models.CharField(max_length=15, blank=True, null=True, verbose_name="Số điện thoại")
@@ -51,7 +51,7 @@ class Profile(models.Model):
     def __str__(self):
         return f"Profile của {self.user.username}"
 
-# --- 3. SIGNAL TỰ ĐỘNG (ĐÃ SỬA LỖI ADMIN CŨ) ---
+# 3. SIGNAL TỰ ĐỘNG (ĐÃ SỬA LỖI ADMIN CŨ)
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -65,3 +65,34 @@ def save_user_profile(sender, instance, **kwargs):
     except Profile.DoesNotExist:
         # Nếu chưa có (như ông Admin cũ này) thì TẠO MỚI luôn
         Profile.objects.create(user=instance)
+        
+# 4. HỖ TRỢ CSKH
+class HoTro(models.Model):
+    CHU_DE_CHOICES = [
+        ('tai_khoan', '🔑 Lỗi tài khoản / Đăng nhập'),
+        ('sai_hien_trang', '⚠️ Báo cáo sai hiện trạng'),
+        ('huong_dan', '📘 Cần hướng dẫn sử dụng'),
+        ('gop_y', '💡 Góp ý tính năng mới'),
+        ('khac', '💬 Khác'),
+    ]
+    
+    # Người gửi (có thể để trống nếu họ chưa đăng nhập được)
+    nguoi_gui = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    ho_ten = models.CharField(max_length=100, verbose_name="Họ tên người gửi")
+    email = models.EmailField(verbose_name="Email liên hệ")
+    sdt = models.CharField(max_length=15, blank=True, null=True, verbose_name="Số điện thoại")
+    
+    chu_de = models.CharField(max_length=50, choices=CHU_DE_CHOICES, default='khac')
+    noi_dung = models.TextField(verbose_name="Nội dung chi tiết")
+    
+    # Trạng thái xử lý của Admin
+    da_xu_ly = models.BooleanField(default=False, verbose_name="Đã xử lý xong?")
+    phan_hoi_admin = models.TextField(blank=True, null=True, verbose_name="Admin trả lời")
+    thoi_gian = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Yêu cầu Hỗ trợ"
+        verbose_name_plural = "Danh sách Hỗ trợ"
+
+    def __str__(self):
+        return f"[{self.get_chu_de_display()}] - {self.ho_ten}"

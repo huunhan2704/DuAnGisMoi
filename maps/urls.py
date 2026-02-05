@@ -50,4 +50,7 @@ urlpatterns = [
     
     # 12. Xóa phản ánh
     path('xoa-phan-anh/<int:pk>/', views.xoa_phan_anh, name='xoa_phan_anh'),
+    
+    # 13. CSKH
+    path('trung-tam-ho-tro/', views.cskh, name='cskh'),
 ]
