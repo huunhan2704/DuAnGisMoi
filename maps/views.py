@@ -8,13 +8,14 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
 from .forms import DangKyForm, UserEditForm, ProfileEditForm 
 from .models import Profile
-
 import csv
 from django.http import HttpResponse
 import feedparser
 from datetime import datetime
 from bs4 import BeautifulSoup
 from django.contrib.auth.decorators import login_required
+from .models import HoTro
+from django.contrib import messages
 
 
 # 1. Trang chủ
@@ -180,7 +181,7 @@ def api_get_points(request):
         data.append({'id': item.id, 'title': item.tieu_de, 'lat': lat, 'lng': lng, 'status': item.trang_thai, 'image_url': item.hinh_anh.url if item.hinh_anh else '', 'detail_url': f"/chi-tiet/{item.id}/"})
     return JsonResponse(data, safe=False)
 
-@login_required(login_url='login')  
+
 def quan_ly_hien_truong(request):
     # Lấy các điểm ĐANG XỬ LÝ (đang thi công)
     danh_sach = PhanAnh.objects.filter(trang_thai='dang_xu_ly').order_by('-thoi_gian')
@@ -217,7 +218,7 @@ def export_excel(request):
 
     return response
 
-@login_required(login_url='login')   
+
 def tin_tuc(request):
     # Link RSS VnExpress
     rss_url = "https://vnexpress.net/rss/thoi-su.rss"
@@ -236,7 +237,7 @@ def tin_tuc(request):
         content_to_check = (entry.title + entry.description).lower()
         
         if any(word in content_to_check for word in keywords):
-            # --- XỬ LÝ ẢNH BẰNG BEAUTIFULSOUP (MỚI & XỊN) ---
+            # XỬ LÝ ẢNH BẰNG BEAUTIFULSOUP (MỚI & XỊN) 
             image_url = 'https://s1.vnecdn.net/vnexpress/restruct/i/v884/logo_default.jpg' # Hình mặc định
             
             # Dùng "cái muỗng" để múc nội dung HTML trong phần mô tả
@@ -249,7 +250,7 @@ def tin_tuc(request):
             if img_tag and img_tag.get('src'):
                 image_url = img_tag.get('src')
 
-            # --- XỬ LÝ MÔ TẢ CHO SẠCH SẼ ---
+            # XỬ LÝ MÔ TẢ CHO SẠCH SẼ 
             # Dùng soup.get_text() để lấy toàn bộ chữ, bỏ hết các thẻ HTML thừa
             summary_text = soup.get_text()
             
@@ -270,12 +271,12 @@ def tin_tuc(request):
 
     return render(request, 'maps/tin_tuc.html', {'news_list': posts})
 
-@login_required(login_url='login')  
+
 def huong_dan(request):
     return render(request, 'maps/huong_dan.html')
 
 
-@login_required(login_url='login')  
+
 def hotline(request):
     return render(request, 'maps/hotline.html')
 
@@ -293,4 +294,34 @@ def xoa_phan_anh(request, pk):
         messages.error(request, "⚠️ Không thể xóa phản ánh đang hoặc đã xử lý!")
         
     return redirect('profile')
+
+def cskh(request):
+    if request.method == 'POST':
+        # 1. Lấy dữ liệu từ form người dùng gửi lên
+        ho_ten = request.POST.get('ho_ten')
+        email = request.POST.get('email')
+        sdt = request.POST.get('sdt')
+        chu_de = request.POST.get('chu_de')
+        noi_dung = request.POST.get('noi_dung')
+
+        # 2. Tạo phiếu hỗ trợ mới
+        phieu = HoTro(
+            ho_ten=ho_ten,
+            email=email,
+            sdt=sdt,
+            chu_de=chu_de,
+            noi_dung=noi_dung
+        )
+        
+        # Nếu người dùng đang đăng nhập, gắn luôn user vào để dễ theo dõi
+        if request.user.is_authenticated:
+            phieu.nguoi_gui = request.user
+            
+        phieu.save()
+
+        # 3. Thông báo thành công
+        messages.success(request, "Đã gửi yêu cầu hỗ trợ! Chúng tôi sẽ phản hồi qua Email sớm nhất.")
+        return redirect('cskh') # Load lại trang để xóa form
+
+    return render(request, 'maps/cskh.html')
 
