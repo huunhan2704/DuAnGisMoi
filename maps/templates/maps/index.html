@@ -18,24 +18,25 @@
         #sidebar { width: 400px; background: #ffffff; padding: 25px; box-shadow: 4px 0 15px rgba(0,0,0,0.05); z-index: 1000; border-right: 1px solid #e9ecef; display: flex; flex-direction: column; overflow-y: auto; }
         #map { flex: 1; height: 100%; background: #e9ecef; position: relative; }
         
-        /* --- 1. SEARCH BOX (CHÍNH XÁC LÀ GÓC TRÁI) --- */
+        /* SEARCH BOX */
         #custom-search-box {
             position: absolute;
-            top: 10px;      /* Cách mép trên 10px */
-            left: 10px;     /* Cách mép trái 10px (SÁT LỀ) */
-            z-index: 2000;  /* Nổi lên trên bản đồ */
+            top: 10px;      
+            left: 10px;     
+            z-index: 2000;  
             background: transparent;
             width: 320px;
         }
-        
-        /* Style cho thanh tìm kiếm */
         .leaflet-control-geocoder {
             border-radius: 30px !important;
             box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
             border: none !important;
             margin: 0 !important;
             background: white;
+            display: flex !important;
+            padding: 5px !important;
         }
+        .leaflet-control-geocoder-form { flex: 1; }
         .leaflet-control-geocoder-form input {
             border-radius: 30px !important;
             padding-left: 15px !important;
@@ -50,22 +51,24 @@
             height: 40px !important;
             width: 40px !important;
             background-color: transparent !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* --- 2. CÔNG CỤ PHÂN TÍCH (GÓC PHẢI) --- */
+        /* TOOL PHÂN TÍCH - ĐÃ CHỈNH VỊ TRÍ */
         #gisToolCard {
             position: absolute;
-            top: 10px;
+            top: 80px;   
             right: 10px; 
-            z-index: 1000;
+            z-index: 900; 
             width: 300px;
             opacity: 0.98;
         }
 
-        /* --- 3. NÚT TRẠNG THÁI (GÓC TRÁI - DƯỚI SEARCH) --- */
-        /* Đẩy Layer Control xuống dưới thanh Search */
+        /* NÚT TRẠNG THÁI */
         .leaflet-top.leaflet-left {
-            margin-top: 60px !important; /* Đẩy xuống 60px */
+            margin-top: 60px !important;
             margin-left: 10px !important;
         }
         .leaflet-control-layers {
@@ -74,7 +77,7 @@
             border-radius: 8px !important;
         }
 
-        /* Các style khác */
+        /* Style khác */
         .custom-map-control-button { position: absolute; bottom: 100px; right: 10px; z-index: 1000; background-color: #fff; border: none; border-radius: 50%; width: 44px; height: 44px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
         .custom-map-control-button:hover { background-color: #0d6efd; color: white; transform: translateY(-2px); }
         .custom-map-control-button svg { width: 22px; height: 22px; fill: currentColor; }
@@ -108,8 +111,16 @@
             <div class="ms-auto">
                 {% if user.is_authenticated %}
                 <div class="dropdown">
-                    <button class="btn btn-light text-primary fw-bold btn-sm dropdown-toggle border-0" type="button" data-bs-toggle="dropdown"><i class="fa-solid fa-user-circle me-1"></i> {{ user.username }}</button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow"><li><a class="dropdown-item text-danger" href="{% url 'logout' %}">🚪 Đăng xuất</a></li></ul>
+                    <a class="nav-link dropdown-toggle fw-bold text-white btn btn-outline-light px-3 rounded-pill" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-user-circle me-1"></i> {{ user.username }}
+                    </a>
+                    
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                        <li><a class="dropdown-item" href="{% url 'map_home' %}"><i class="fa-solid fa-map me-2 text-primary"></i> Vào Bản đồ</a></li>
+                        <li><a class="dropdown-item" href="{% url 'list' %}"><i class="fa-solid fa-address-card me-2 text-primary"></i> Hồ sơ của tôi</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}"><i class="fa-solid fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
+                    </ul>
                 </div>
                 {% else %}
                 <a href="{% url 'login' %}" class="btn btn-light text-primary fw-bold btn-sm"><i class="fa-solid fa-user me-1"></i> Đăng nhập</a>
@@ -207,7 +218,7 @@
                             <i class="fa-solid fa-chevron-down small text-muted"></i>
                         </button>
                         <div class="dropdown-menu multi-select-menu" id="categoryList">
-                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -232,7 +243,6 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         
-        // --- 1. TẠO THANH TÌM KIẾM ---
         var geocoder = L.Control.geocoder({ 
             defaultMarkGeocode: false,
             collapsed: false, 
@@ -246,7 +256,6 @@
         })
         .addTo(map);
 
-        // --- 2. DI CHUYỂN THANH TÌM KIẾM VÀO CONTAINER Ở GÓC TRÁI ---
         setTimeout(function() {
             var geocoderContainer = geocoder.getContainer();
             var searchBox = document.getElementById('custom-search-box');
@@ -266,9 +275,6 @@
             "<span class='text-warning fw-bold'>⚠️ Đang xử lý</span>": lopDangXuLy,
             "<span class='text-success fw-bold'>✅ Đã xong</span>": lopDaXong
         };
-        
-        // --- 3. LAYER CONTROL (GÓC TRÁI) ---
-        // Vị trí topleft sẽ tự động xếp dưới custom-search-box vì chúng ta đã dùng CSS đẩy margin-top
         L.control.layers(null, overlayMaps, {position: 'topleft'}).addTo(map);
 
         function addSeamlessHeatmap(targetArray, coords) {
@@ -293,7 +299,7 @@
                     title: "{{ p.tieu_de|escapejs }}", 
                     address: "{{ p.dia_chi|escapejs }}",
                     desc: "{{ p.mo_ta|escapejs }}",
-                    // image: "{% if p.hinh_anh %}{{ request.scheme }}://{{ request.get_host }}{{ p.hinh_anh.url }}{% endif %}",
+                    image: "{% if p.hinh_anh %}{{ p.hinh_anh.url }}{% endif %}",
                     status_text: "{{ p.get_trang_thai_display }}",
                     status_code: "{{ p.trang_thai }}",
                     coords: {{ p.du_lieu_toa_do|safe|default:"[]" }} 
@@ -472,6 +478,7 @@
         }
 
         function analyzeData(centers) {
+            // LẤY GIÁ TRỊ BÁN KÍNH TỪ Ô INPUT (VD: 500)
             var rM = parseFloat(document.getElementById('bufferRadius').value);
             var radiusKm = rM / 1000;
             foundPointsData = []; var filteredMapData = []; 
@@ -509,6 +516,8 @@
                     filteredMapData.push({ ...item, coords: validCoords });
                     if(validCoords.length > 0) {
                          validCoords.forEach(c => {
+                             // KHÔNG TÍNH KHOẢNG CÁCH THỰC NỮA
+                             // GÁN LUÔN GIÁ TRỊ R (VÍ DỤ 500) VÀO BIẾN DIST
                              foundPointsData.push({ 
                                  title: item.title, 
                                  address: item.address,
@@ -516,7 +525,7 @@
                                  status: item.status_text, 
                                  lat: c.lat, 
                                  lng: c.lng, 
-                                 dist: "Trong vùng" 
+                                 dist: rM // <--- LẤY LUÔN SỐ 500
                              });
                          });
                     }
