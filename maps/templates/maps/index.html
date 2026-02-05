@@ -325,7 +325,7 @@
                         if (item.status_code === 'da_xu_ly') { color = '#198754'; targetLayer = lopDaXong; }
                         else if (item.status_code === 'dang_xu_ly') { color = '#ffc107'; targetLayer = lopDangXuLy; }
                         
-                        var googleMapsLink = `http://googleusercontent.com/maps.google.com/search/${c.lat},${c.lng}`;
+                        var googleMapsLink = `https://www.google.com/maps?q=${c.lat},${c.lng}`;
                         var popupContent = `
                             <div class="popup-header">${item.title}</div>
                             <div class="popup-body">
@@ -422,6 +422,7 @@
         });
 
         map.on('click', function(e) {
+            // 1. Quét vùng (Giữ nguyên)
             if (isBufferMode) {
                 document.querySelectorAll('#categoryList input:checked').forEach(cb => cb.checked = false);
                 document.querySelector('#categoryDropdownBtn span').innerText = "📍 Chọn loại sự cố đang xử lý...";
@@ -436,7 +437,47 @@
                 isBufferMode = false; document.getElementById('map').style.cursor = '';
                 return;
             }
+
+            // 2. Kiểm tra đăng nhập (Giữ nguyên)
             if(!document.getElementById('points-data')) { alert("🔒 Vui lòng đăng nhập!"); return; }
+
+            var isDuplicate = false; 
+
+            // ============================================================
+            // KIỂM TRA 1: So với dữ liệu cũ trong Database
+            // ============================================================
+            for (var i = 0; i < allData.length; i++) {
+                var item = allData[i];
+                if (item.coords && Array.isArray(item.coords)) {
+                    for (var j = 0; j < item.coords.length; j++) {
+                        var existingPoint = L.latLng(item.coords[j].lat, item.coords[j].lng);
+                        var distance = map.distance(e.latlng, existingPoint); 
+                        if (distance < 10 && item.status_code !== 'da_xu_ly') {
+                            alert("⚠️ Vị trí này đã có phản ánh (đang Chờ duyệt hoặc Đang xử lý).\nVui lòng không báo trùng!");
+                            isDuplicate = true; break;
+                        }
+                    }
+                }
+                if (isDuplicate) break;
+            }
+
+            if (isDuplicate) return; // Nếu trùng điểm cũ thì dừng
+
+            // KIỂM TRA 2: So với các điểm VỪA MỚI CHẤM (QUAN TRỌNG)
+            for (var k = 0; k < markers.length; k++) {
+                var existingNewPoint = markers[k].marker.getLatLng(); // Lấy tọa độ điểm vừa chấm
+                var distNew = map.distance(e.latlng, existingNewPoint);
+                
+                if (distNew < 10) { // Nếu chấm lại quá gần điểm vừa chấm
+                    alert("⚠️ Bạn vừa mới chấm chỗ này rồi mà? Đừng chấm lại nữa!");
+                    isDuplicate = true; 
+                    break;
+                }
+            }
+
+            if (isDuplicate) return; // Nếu trùng điểm mới thì dừng
+
+            // 3. Nếu qua được cả 2 vòng kiểm tra thì mới cho thêm
             addMarker(e.latlng.lat, e.latlng.lng); 
         });
 
@@ -500,7 +541,7 @@
                 }
 
                 if (!keepItem && isBufferMode && item.status_code === 'dang_xu_ly') {
-                     if (Array.isArray(item.coords)) {
+                    if (Array.isArray(item.coords)) {
                         item.coords.forEach(function(c) {
                             var pt = turf.point([c.lng, c.lat]);
                             var isInside = centers.some(center => {
@@ -515,19 +556,19 @@
                 if (keepItem) {
                     filteredMapData.push({ ...item, coords: validCoords });
                     if(validCoords.length > 0) {
-                         validCoords.forEach(c => {
+                        validCoords.forEach(c => {
                              // KHÔNG TÍNH KHOẢNG CÁCH THỰC NỮA
                              // GÁN LUÔN GIÁ TRỊ R (VÍ DỤ 500) VÀO BIẾN DIST
-                             foundPointsData.push({ 
-                                 title: item.title, 
-                                 address: item.address,
-                                 desc: item.desc,
-                                 status: item.status_text, 
-                                 lat: c.lat, 
-                                 lng: c.lng, 
+                            foundPointsData.push({ 
+                                title: item.title, 
+                                ddress: item.address,
+                                desc: item.desc,
+                                status: item.status_text, 
+                                lat: c.lat, 
+                                lng: c.lng, 
                                  dist: rM // <--- LẤY LUÔN SỐ 500
-                             });
-                         });
+                            });
+                        });
                     }
                 }
             });
