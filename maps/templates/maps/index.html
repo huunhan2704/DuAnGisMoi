@@ -326,7 +326,7 @@
                         else if (item.status_code === 'dang_xu_ly') { color = '#ffc107'; targetLayer = lopDangXuLy; }
                         
                         // ĐÃ FIX LỖI LINK GOOGLE MAPS Ở DƯỚI ĐÂY
-                        var googleMapsLink = `http://googleusercontent.com/maps.google.com/search/${c.lat},${c.lng}`;
+                        var googleMapsLink = `https://www.google.com/maps?q=${c.lat},${c.lng}`;
                         var popupContent = `
                             <div class="popup-header">${item.title}</div>
                             <div class="popup-body">
@@ -517,10 +517,9 @@
                     filteredMapData.push({ ...item, coords: validCoords });
                     if(validCoords.length > 0) {
                          validCoords.forEach(c => {
-                             // ĐÃ SỬA LỖI TẠI ĐÂY: ddress -> address
                              foundPointsData.push({ 
                                  title: item.title, 
-                                 address: item.address, // <-- Đã sửa
+                                 address: item.address, 
                                  desc: item.desc,
                                  status: item.status_text, 
                                  lat: c.lat, 
