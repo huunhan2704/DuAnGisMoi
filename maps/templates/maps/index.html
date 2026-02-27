@@ -11,7 +11,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <style>
         body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: 'Segoe UI', sans-serif; }
         .main-container { display: flex; flex: 1; overflow: hidden; position: relative; }
@@ -233,6 +235,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
@@ -240,6 +243,40 @@
     
     <script>
         var map = L.map('map', {zoomControl: false}).setView([10.762622, 106.660172], 13);
+        var routingControl = null;
+
+        function veDuongDi(diemDenLat, diemDenLng) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        var viTriCuaToi = L.latLng(position.coords.latitude, position.coords.longitude);
+                        var diemDen = L.latLng(diemDenLat, diemDenLng);
+
+                        if (routingControl != null) map.removeControl(routingControl);
+
+                        routingControl = L.Routing.control({
+                            waypoints: [viTriCuaToi, diemDen],
+                            routeWhileDragging: false,
+                            language: 'en', // Đã sửa thành tiếng Anh để không bị lỗi
+                            showAlternatives: true,
+                            router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+                            createMarker: function(i, w, n) {
+                                var c = (i === 0) ? '#198754' : '#dc3545'; 
+                                var t = (i === 0) ? '📍 Vị trí thật của bạn' : '⚠️ Điểm sự cố';
+                                return L.circleMarker(w.latLng, { color: 'white', fillColor: c, fillOpacity: 1, radius: 8, weight: 2 }).bindPopup(t).openPopup();
+                            },
+                            lineOptions: { styles: [{color: '#0d6efd', opacity: 0.8, weight: 6}] }
+                        }).addTo(map);
+                    }, 
+                    function(error) {
+                        console.log("Trình duyệt báo lỗi GPS ngầm: " + error.message);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                alert("Trình duyệt không hỗ trợ GPS.");
+            }
+        }
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         
@@ -324,17 +361,20 @@
                         var color = '#dc3545', targetLayer = lopChoDuyet;
                         if (item.status_code === 'da_xu_ly') { color = '#198754'; targetLayer = lopDaXong; }
                         else if (item.status_code === 'dang_xu_ly') { color = '#ffc107'; targetLayer = lopDangXuLy; }
-                        
-                        // ĐÃ FIX LỖI LINK GOOGLE MAPS Ở DƯỚI ĐÂY
-                        var googleMapsLink = `http://googleusercontent.com/maps.google.com/search/${c.lat},${c.lng}`;
+                    
                         var popupContent = `
                             <div class="popup-header">${item.title}</div>
                             <div class="popup-body">
                                 <span class="badge text-dark popup-status mb-2" style="background:${color}; color:white!important;">${item.status_text}</span>
-                                ${ item.image ? `<img src="${item.image}" class="popup-img">` : '' }
+                                ${ item.image ? "<img src='" + item.image + "' class='popup-img'>" : "" }
                                 <hr class="my-2">
-                                <a href="${googleMapsLink}" target="_blank" class="btn btn-sm btn-outline-primary w-100 fw-bold"><i class="fa-solid fa-directions me-1"></i> Chỉ đường</a>
+                                
+                                <button onclick="veDuongDi(${c.lat}, ${c.lng})" class="btn btn-sm btn-outline-primary w-100 fw-bold">
+                                    <i class="fa-solid fa-directions me-1"></i> Chỉ đường đi
+                                </button>
+                                
                             </div>`;
+                            
                         var marker = L.circleMarker([c.lat, c.lng], { color: 'white', fillColor: color, fillOpacity: 1, radius: 8, weight: 2 }).bindPopup(popupContent);
                         targetLayer.addLayer(marker);
                     });
@@ -422,6 +462,9 @@
             this.className = 'btn btn-warning w-100 btn-sm fw-bold mb-2';
         });
 
+        
+        var danhSachDiemDaChon = []; 
+
         map.on('click', function(e) {
             if (isBufferMode) {
                 document.querySelectorAll('#categoryList input:checked').forEach(cb => cb.checked = false);
@@ -437,7 +480,37 @@
                 isBufferMode = false; document.getElementById('map').style.cursor = '';
                 return;
             }
-            if(!document.getElementById('points-data')) { alert("🔒 Vui lòng đăng nhập!"); return; }
+            
+            if(!document.getElementById('points-data')) { 
+                alert("🔒 Vui lòng đăng nhập!"); 
+                return; 
+            }
+
+        
+            var toaDoMoi = e.latlng;
+            var KHOANG_CACH_TOI_THIEU = 10; 
+            var biTrung = false;
+
+            for (var i = 0; i < danhSachDiemDaChon.length; i++) {
+                var toaDoCu = danhSachDiemDaChon[i];
+                var khoangCach = toaDoMoi.distanceTo(toaDoCu); // Leaflet tự đo khoảng cách 2 điểm
+                
+                if (khoangCach < KHOANG_CACH_TOI_THIEU) {
+                    biTrung = true;
+                    break; // Thoát vòng lặp ngay nếu phát hiện quá gần
+                }
+            }
+
+            if (biTrung) {
+                alert("📍 Điểm này bị trùng hoặc quá gần điểm cũ! Vui lòng chọn cách xa ra một chút nhé.");
+                return; // CHẶN LẠI! Không cho chạy xuống hàm addMarker bên dưới
+            }
+
+            // Hợp lệ thì lưu điểm này vào bộ nhớ để check cho những lần click sau
+            danhSachDiemDaChon.push(toaDoMoi);
+            
+
+            
             addMarker(e.latlng.lat, e.latlng.lng); 
         });
 
@@ -516,18 +589,18 @@
                 if (keepItem) {
                     filteredMapData.push({ ...item, coords: validCoords });
                     if(validCoords.length > 0) {
-                         validCoords.forEach(c => {
+                        validCoords.forEach(c => {
                              // ĐÃ SỬA LỖI TẠI ĐÂY: ddress -> address
-                             foundPointsData.push({ 
-                                 title: item.title, 
+                            foundPointsData.push({ 
+                                title: item.title, 
                                  address: item.address, // <-- Đã sửa
-                                 desc: item.desc,
-                                 status: item.status_text, 
-                                 lat: c.lat, 
-                                 lng: c.lng, 
-                                 dist: rM 
-                             });
-                         });
+                                desc: item.desc,
+                                status: item.status_text, 
+                                lat: c.lat, 
+                                lng: c.lng, 
+                                dist: rM 
+                            });
+                        });
                     }
                 }
             });

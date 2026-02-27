@@ -16,7 +16,68 @@ from bs4 import BeautifulSoup
 from django.contrib.auth.decorators import login_required
 from .models import HoTro
 from django.contrib import messages
+from django.shortcuts import render
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.models import User
 
+#trang admin 
+@staff_member_required(login_url='login') 
+def trang_quan_ly(request):
+    # Lấy dữ liệu từ bảng PhanAnh và HoTro
+    ds_phan_anh = PhanAnh.objects.all().order_by('-id')
+    ds_ho_tro = HoTro.objects.all().order_by('-id')
+    ds_user = User.objects.all().order_by('-id')
+    
+    context = {
+        'ds_phan_anh': ds_phan_anh,
+        'ds_ho_tro': ds_ho_tro,
+        'ds_user': ds_user,
+    }
+    return render(request, 'maps/quan_ly.html', context)
+
+@staff_member_required(login_url='login')
+def duyet_phan_anh(request, id):
+    # Tìm phản ánh theo ID
+    phan_anh = get_object_or_404(PhanAnh, id=id)
+    
+    # Nếu đang chờ duyệt thì chuyển sang đang xử lý
+    if phan_anh.trang_thai == 'cho_duyet':
+        phan_anh.trang_thai = 'dang_xu_ly'
+    # Nếu đang xử lý thì chuyển sang đã xử lý xong
+    elif phan_anh.trang_thai == 'dang_xu_ly':
+        phan_anh.trang_thai = 'da_xu_ly'
+        
+    phan_anh.save()
+    return redirect('trang_quan_ly') # Làm xong thì load lại trang quản lý
+
+@staff_member_required(login_url='login')
+def xoa_phan_anh(request, id):
+    phan_anh = get_object_or_404(PhanAnh, id=id)
+    phan_anh.delete() # Lệnh xóa khỏi Database
+    return redirect('trang_quan_ly')
+
+@staff_member_required(login_url='login')
+def khoa_user(request, id):
+    user_can_khoa = get_object_or_404(User, id=id)
+    
+    # BẢO HIỂM: Không cho phép tự khóa Admin Tổng (chống tự hủy)
+    if not user_can_khoa.is_superuser: 
+        user_can_khoa.is_active = not user_can_khoa.is_active  # Đảo ngược trạng thái
+        user_can_khoa.save()
+        
+    return redirect('trang_quan_ly')
+
+@staff_member_required(login_url='login')
+def xoa_user(request, id):
+    user_can_xoa = get_object_or_404(User, id=id)
+    
+    # BẢO HIỂM: Không cho phép tự xóa Admin Tổng
+    if not user_can_xoa.is_superuser:
+        user_can_xoa.delete()
+        
+    return redirect('trang_quan_ly')
 
 # 1. Trang chủ
 def home(request):

@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from django.contrib.auth import views as auth_views
 
+
 urlpatterns = [
     # 1. Trang chủ
     path('', views.home, name='home'),
@@ -53,4 +54,13 @@ urlpatterns = [
     
     # 13. CSKH
     path('trung-tam-ho-tro/', views.cskh, name='cskh'),
+    
+    #14. admin 
+    path('quan-ly/', views.trang_quan_ly, name='trang_quan_ly'),
+    path('duyet-phan-anh/<int:id>/', views.duyet_phan_anh, name='duyet_phan_anh'),
+    path('xoa-phan-anh/<int:id>/', views.xoa_phan_anh, name='xoa_phan_anh'),
+    
+    # 15. Quản lý User
+    path('khoa-user/<int:id>/', views.khoa_user, name='khoa_user'),
+    path('xoa-user/<int:id>/', views.xoa_user, name='xoa_user'),
 ]

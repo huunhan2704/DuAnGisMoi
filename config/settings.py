@@ -75,8 +75,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        # Quan trọng: Dùng engine postgis để hỗ trợ bản đồ
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        
+        'NAME': 'duangismoi',       
+        'USER': 'postgres',        
+        'PASSWORD': '281105',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -127,3 +133,11 @@ MEDIA_URL = '/media/'  # Đường dẫn trên trình duyệt
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Thư mục thật trên máy tính
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 LOGIN_URL = 'login'
+
+import os
+
+# Cấu hình đường dẫn thư viện cho GeoDjango
+if os.name == 'nt':
+    # Đường dẫn lấy từ máy (PostgreSQL 18)
+    GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\18\bin\libgdal-35.dll'
+    GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\18\bin\libgeos_c.dll'
