@@ -23,6 +23,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('maps.urls')),
+    
 ]
 
 # 2. Thêm đoạn này để xem được ảnh khi đang code (DEBUG = True)

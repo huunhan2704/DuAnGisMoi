@@ -63,4 +63,6 @@ urlpatterns = [
     # 15. Quản lý User
     path('khoa-user/<int:id>/', views.khoa_user, name='khoa_user'),
     path('xoa-user/<int:id>/', views.xoa_user, name='xoa_user'),
+    # 16. API quét vùng
+    path('api/quet-vung/', views.api_quet_vung_postgis, name='api_quet_vung'),
 ]

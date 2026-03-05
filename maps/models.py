@@ -1,4 +1,4 @@
-from django.db import models
+from django.contrib.gis.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -19,6 +19,8 @@ class PhanAnh(models.Model):
     du_lieu_toa_do = models.TextField(verbose_name="Danh sách tọa độ")
     
     # 4. Hình ảnh
+    vi_tri = models.PointField(srid=4326, null=True, blank=True, verbose_name="Tọa độ chuẩn GIS")
+    
     hinh_anh = models.ImageField(upload_to='hien_truong/', blank=True, null=True, verbose_name="Ảnh hiện trường")
     
     # 5. Thời gian

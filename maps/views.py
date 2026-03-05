@@ -21,6 +21,8 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.models import User
+from django.contrib.gis.geos import Point
+import json
 
 #trang admin 
 @staff_member_required(login_url='login') 
@@ -132,31 +134,33 @@ def luu_phan_anh(request):
             tieude = request.POST.get('tieu_de')
             mota = request.POST.get('mo_ta')
             toado = request.POST.get('points_data')
-            
-            # ===> LẤY ĐỊA CHỈ DÂN NHẬP <===
             diachi = request.POST.get('dia_chi') 
-            
             hinh = request.FILES.get('hinh_anh')
 
-            # Tạo đối tượng
             new_pa = PhanAnh(
                 tieu_de=tieude,
                 mo_ta=mota,
-                
-                # ===> LƯU VÀO DATABASE <===
                 dia_chi=diachi,
-                
                 du_lieu_toa_do=toado,
                 hinh_anh=hinh
             )
 
-            # Nếu người dùng đang đăng nhập -> Gán tên họ vào hồ sơ
+            # ===> XỬ LÝ POSTGIS: Tạo đối tượng Point từ tọa độ <===
+            if toado and toado != "[]":
+                try:
+                    points_list = json.loads(toado) # Dịch chuỗi JSON thành List Python
+                    if len(points_list) > 0:
+                        lat = float(points_list[0]['lat'])
+                        lng = float(points_list[0]['lng'])
+                        # LƯU Ý CỰC KỲ QUAN TRỌNG: Point của GeoDjango nhận (Kinh độ, Vĩ độ) - ngược với Google Map
+                        new_pa.vi_tri = Point(lng, lat, srid=4326)
+                except Exception as e:
+                    print("Lỗi chuyển đổi PostGIS:", e)
+
             if request.user.is_authenticated:
                 new_pa.nguoi_gui = request.user
             
-            # Lưu xuống Database
             new_pa.save()
-
             return JsonResponse({'success': True, 'message': 'Gửi phản ánh thành công!'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)})
@@ -385,4 +389,34 @@ def cskh(request):
         return redirect('cskh') # Load lại trang để xóa form
 
     return render(request, 'maps/cskh.html')
+from django.contrib.gis.measure import D
 
+def api_quet_vung_postgis(request):
+    """
+    TOOL GIS BACKEND: Tìm các sự cố nằm trong vòng tròn bán kính R 
+    (Sử dụng hàm __distance_lte của PostGIS)
+    """
+    # 1. Nhận tọa độ tâm và bán kính từ Frontend gửi lên (mặc định lấy chợ Bến Thành)
+    lat = float(request.GET.get('lat', 10.7725))
+    lng = float(request.GET.get('lng', 106.6980))
+    ban_kinh_met = float(request.GET.get('radius', 500)) 
+
+    # 2. Tạo điểm tâm (Nhớ là Kinh độ trước, Vĩ độ sau)
+    tam_diem = Point(lng, lat, srid=4326)
+
+    # 3. QUAN TRỌNG NHẤT: Truy vấn DB bằng hàm không gian của GeoDjango/PostGIS
+    ds_su_co = PhanAnh.objects.filter(
+        vi_tri__distance_lte=(tam_diem, D(m=ban_kinh_met))
+    )
+
+    # 4. Trả kết quả ra dạng JSON
+    data = []
+    for sc in ds_su_co:
+        data.append({
+            'id': sc.id,
+            'tieu_de': sc.tieu_de,
+            # Tính luôn khoảng cách thực tế từ tâm đến điểm đó để show ra báo cáo
+            'khoang_cach': round(sc.vi_tri.distance(tam_diem) * 100000, 2) # Nhân để đổi ra mét tương đối
+        })
+
+    return JsonResponse({'tam_diem': {'lat': lat, 'lng': lng}, 'tong_so': len(data), 'du_lieu': data})
