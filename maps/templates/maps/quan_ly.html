@@ -144,18 +144,18 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if u.is_superuser %}
-                                    <span class="badge bg-light text-muted border"><i class="fa-solid fa-shield"></i> Quyền tối cao</span>
-                                {% else %}
-                                    <a href="{% url 'khoa_user' u.id %}" class="btn btn-warning btn-sm" title="Khóa / Mở khóa">
-                                        <i class="fa-solid fa-lock"></i>
-                                    </a>
-                                    
-                                    <a href="{% url 'xoa_user' u.id %}" class="btn btn-danger btn-sm" title="Xóa tài khoản" onclick="return confirm('Chắc chắn muốn xóa vĩnh viễn User này không?');">
-                                        <i class="fa-solid fa-user-xmark"></i>
-                                    </a>
-                                {% endif %}
-                            </td>
+                            {% if u.is_superuser %}
+                                <span class="badge bg-light text-muted border"><i class="fa-solid fa-shield"></i> Quyền tối cao</span>
+                            {% else %}
+                                <a href="{% url 'khoa_user' u.id %}" class="btn btn-warning btn-sm" title="Khóa / Mở khóa">
+                                    <i class="fa-solid fa-lock"></i>
+                                </a>
+                                
+                                <a href="{% url 'xoa_user' u.id %}" class="btn btn-danger btn-sm" title="Xóa tài khoản" onclick="return confirm('Chắc chắn muốn xóa vĩnh viễn User này không?');">
+                                    <i class="fa-solid fa-user-xmark"></i>
+                                </a>
+                            {% endif %}
+                        </td>
                         </tr>
                         {% empty %}
                         <tr><td colspan="6" class="text-center text-muted">Chưa có người dùng nào.</td></tr>

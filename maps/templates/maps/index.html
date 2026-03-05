@@ -361,13 +361,10 @@
                         var color = '#dc3545', targetLayer = lopChoDuyet;
                         if (item.status_code === 'da_xu_ly') { color = '#198754'; targetLayer = lopDaXong; }
                         else if (item.status_code === 'dang_xu_ly') { color = '#ffc107'; targetLayer = lopDangXuLy; }
-<<<<<<< HEAD
-                    
-=======
+
                         
                         // ĐÃ FIX LỖI LINK GOOGLE MAPS Ở DƯỚI ĐÂY
                         var googleMapsLink = `https://www.google.com/maps?q=${c.lat},${c.lng}`;
->>>>>>> 0319fc1d35ba2a53472138e7cbc8f13b753ea2ac
                         var popupContent = `
                             <div class="popup-header">${item.title}</div>
                             <div class="popup-body">
@@ -580,7 +577,7 @@
                 }
 
                 if (!keepItem && isBufferMode && item.status_code === 'dang_xu_ly') {
-                     if (Array.isArray(item.coords)) {
+                    if (Array.isArray(item.coords)) {
                         item.coords.forEach(function(c) {
                             var pt = turf.point([c.lng, c.lat]);
                             var isInside = centers.some(center => {
@@ -595,7 +592,7 @@
                 if (keepItem) {
                     filteredMapData.push({ ...item, coords: validCoords });
                     if(validCoords.length > 0) {
-<<<<<<< HEAD
+
                         validCoords.forEach(c => {
                              // ĐÃ SỬA LỖI TẠI ĐÂY: ddress -> address
                             foundPointsData.push({ 
@@ -608,19 +605,18 @@
                                 dist: rM 
                             });
                         });
-=======
-                         validCoords.forEach(c => {
-                             foundPointsData.push({ 
-                                 title: item.title, 
-                                 address: item.address, 
-                                 desc: item.desc,
-                                 status: item.status_text, 
-                                 lat: c.lat, 
-                                 lng: c.lng, 
-                                 dist: rM 
-                             });
-                         });
->>>>>>> 0319fc1d35ba2a53472138e7cbc8f13b753ea2ac
+                        validCoords.forEach(c => {
+                            foundPointsData.push({ 
+                                title: item.title, 
+                                address: item.address, 
+                                desc: item.desc,
+                                status: item.status_text, 
+                                lat: c.lat, 
+                                lng: c.lng, 
+                                dist: rM 
+                            });
+                        });
+
                     }
                 }
             });
