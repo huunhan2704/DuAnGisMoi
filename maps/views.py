@@ -27,7 +27,7 @@ import json
 #trang admin 
 @staff_member_required(login_url='login') 
 def trang_quan_ly(request):
-    # Lấy dữ liệu từ bảng PhanAnh và HoTro
+    # Lấy dữ liệu từ bảng PhanAnh và HoTro và User 
     ds_phan_anh = PhanAnh.objects.all().order_by('-id')
     ds_ho_tro = HoTro.objects.all().order_by('-id')
     ds_user = User.objects.all().order_by('-id')
