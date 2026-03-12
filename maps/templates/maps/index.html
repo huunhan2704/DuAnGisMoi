@@ -117,11 +117,20 @@
                     </a>
                     
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                         {% if user.is_superuser or user.is_staff %}
+                        <li>
+                            <a class="dropdown-item fw-bold" style="color: #dc3545;" href="/quan-ly/">
+                                <i class="fa-solid fa-shield-halved me-2"></i> Quản trị hệ thống
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% endif %}
                         <li><a class="dropdown-item" href="{% url 'map_home' %}"><i class="fa-solid fa-map me-2 text-primary"></i> Vào Bản đồ</a></li>
-                        <li><a class="dropdown-item" href="{% url 'list' %}"><i class="fa-solid fa-address-card me-2 text-primary"></i> Hồ sơ của tôi</a></li>
+                        <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-user-cog me-2 text-primary"></i> Quản lý Hồ sơ</a></li>
+                        <li><a class="dropdown-item" href="{% url 'list' %}"><i class="fa-solid fa-address-card me-2 text-primary"></i> Xem lịch sử phản ánh </a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}"><i class="fa-solid fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
-                    </ul>
+                    </ul>  
                 </div>
                 {% else %}
                 <a href="{% url 'login' %}" class="btn btn-light text-primary fw-bold btn-sm"><i class="fa-solid fa-user me-1"></i> Đăng nhập</a>
@@ -283,6 +292,7 @@
         var allData = [
             {% for p in phan_anh %}
                 { 
+                    id: "{{ p.id }}",
                     title: "{{ p.tieu_de|escapejs }}", 
                     address: "{{ p.dia_chi|escapejs }}",
                     desc: "{{ p.mo_ta|escapejs }}",
@@ -290,6 +300,7 @@
                     status_text: "{{ p.get_trang_thai_display }}",
                     status_code: "{{ p.trang_thai }}",
                     coords: {{ p.du_lieu_toa_do|safe|default:"[]" }} 
+                    
                 }
             {% if not forloop.last %},{% endif %}
             {% endfor %}
@@ -317,6 +328,51 @@
     <script>
         // Gọi hàm từ gis_tools.js để vẽ bản đồ
         renderMap(allData);
+// ==========================================
+        // TÍNH NĂNG ĐỊNH VỊ TỪ TRANG QUẢN LÝ
+        // ==========================================
+        const urlParams = new URLSearchParams(window.location.search);
+        const focusId = urlParams.get('focus_id');
+
+        if (focusId) {
+            const targetPoint = allData.find(item => item.id == focusId);
+            
+            if (targetPoint && targetPoint.coords) {
+                let lat, lng;
+                let dataToaDo = targetPoint.coords;
+
+                // 🎯 ĐỌC ĐÚNG ĐỊNH DẠNG TỪ ẢNH BẠN GỬI: [{lat: 10.xxx, lng: 106.xxx}]
+                if (Array.isArray(dataToaDo) && dataToaDo.length > 0 && dataToaDo[0].lat !== undefined) {
+                    lat = parseFloat(dataToaDo[0].lat);
+                    lng = parseFloat(dataToaDo[0].lng);
+                } 
+                // Dự phòng: Nếu là mảng [kinh_do, vi_do] bình thường
+                else if (Array.isArray(dataToaDo) && dataToaDo.length >= 2 && typeof dataToaDo[0] === 'number') {
+                    lng = parseFloat(dataToaDo[0]);
+                    lat = parseFloat(dataToaDo[1]);
+                }
+
+                // Nếu lấy được tọa độ thành công thì bắt đầu cất cánh bay
+                if (lat && lng) {
+                    setTimeout(() => {
+                        map.flyTo([lat, lng], 18, { animate: true, duration: 1.5 });
+
+                        // Vẽ vòng tròn đỏ nhấp nháy làm hồng tâm
+                        const highlightCircle = L.circleMarker([lat, lng], {
+                            radius: 30, color: 'red', fillColor: '#f03', fillOpacity: 0.5, weight: 3
+                        }).addTo(map);
+
+                        // Tự động xóa vòng tròn sau 4 giây
+                        setTimeout(() => { map.removeLayer(highlightCircle); }, 4000);
+                        
+                    }, 800); // Chờ 0.8s cho map load xong
+                } 
+            }
+        }
+
+        // ==========================================
+        // CÁC SỰ KIỆN KHÁC (HEATMAP, QUÉT VÙNG, CLICK)
+        // ==========================================
 
         // Gắn sự kiện cho Heatmap
         document.getElementById('toggleHeatmap').addEventListener('change', syncHeatmap);

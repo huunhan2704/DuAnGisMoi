@@ -6,189 +6,306 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-light">
+<body class="bg-light m-0 p-0">
 
-<nav class="navbar navbar-dark bg-primary mb-4">
-    <div class="container-fluid">
-        <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-shield-halved"></i> QUẢN TRỊ HỆ THỐNG</a>
-        <a href="/" class="btn btn-light btn-sm">Về trang chủ</a>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-shield-halved me-2"></i>QUẢN TRỊ HỆ THỐNG</a>
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-center" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#phan-anh" role="tab" aria-selected="true">
+                        <i class="fa-solid fa-map-location-dot me-1"></i> Phản Ánh Sự Cố
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#ho-tro" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-headset me-1"></i> Yêu Cầu Hỗ Trợ
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tai-khoan" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-users me-1"></i> Quản Lý Tài Khoản
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#lich-su" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch Sử
+                    </a>
+                </li>
+
+                {% if user.is_authenticated %}
+                <li class="nav-item dropdown ms-3">
+                    <a class="nav-link dropdown-toggle fw-bold text-white btn btn-outline-light px-3 rounded-pill" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-1"></i> {{ user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                        <li>
+                            <a class="dropdown-item fw-bold text-success" href="/">
+                                <i class="fa-solid fa-house me-2"></i> Về Trang chủ
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'map_home' %}"><i class="fas fa-map me-2 text-primary"></i> Vào Bản đồ</a></li>
+                        <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-user-cog me-2 text-primary"></i> Quản lý Hồ sơ</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item ms-3">
+                    <a class="nav-link btn btn-warning text-dark fw-bold px-4 rounded-pill shadow-sm" href="{% url 'login' %}">
+                        <i class="fas fa-sign-in-alt me-1"></i> Đăng nhập
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
     </div>
 </nav>
-
 <div class="container-fluid px-4">
-    <h4 class="mb-3 text-primary"><i class="fa-solid fa-map-location-dot"></i> Danh sách Phản Ánh Sự Cố</h4>
-    <div class="card shadow-sm mb-5">
-        <div class="card-body overflow-auto">
-            <table class="table table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>Người gửi</th>
-                        <th>Tiêu đề</th>
-                        <th>Địa chỉ</th>
-                        <th>Hình ảnh</th> 
-                        <th>Thời gian</th>
-                        <th>Trạng thái</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in ds_phan_anh %}
-                    <tr>
-                        <td>#{{ item.id }}</td>
-                        <td>{{ item.nguoi_gui.username|default:"Khách vãng lai" }}</td>
-                        <td class="fw-bold">{{ item.tieu_de }}</td>
-                        <td>{{ item.dia_chi|default:"Chưa cập nhật địa chỉ" }}</td>
-                        
-                        <td>
-                            {% if item.hinh_anh %}
-                                <img src="{{ item.hinh_anh.url }}" alt="Hình sự cố" class="img-thumbnail shadow-sm" style="width: 60px; height: 60px; object-fit: cover; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalImage{{ item.id }}" title="Bấm để phóng to">
+    <div class="tab-content mt-4" id="adminTabContent">
 
-                                <div class="modal fade" id="modalImage{{ item.id }}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header bg-dark text-white">
-                                                <h5 class="modal-title"><i class="fa-solid fa-image"></i> Hình ảnh thực tế - Sự cố #{{ item.id }}</h5>
-                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body text-center bg-light">
-                                                <img src="{{ item.hinh_anh.url }}" class="img-fluid rounded shadow" alt="Hình phóng to">
+        <div class="tab-pane fade show active" id="phan-anh" role="tabpanel">
+            <h4 class="mb-3 text-primary"><i class="fa-solid fa-map-location-dot"></i> Danh sách Phản Ánh Sự Cố</h4>
+            <div class="card shadow-sm mb-5">
+                <div class="card-body overflow-auto">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Người gửi</th>
+                                <th>Tiêu đề</th>
+                                <th>Địa chỉ</th>
+                                <th>Hình ảnh</th> 
+                                <th>Thời gian</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in ds_phan_anh %}
+                            {% if item.trang_thai == 'cho_duyet' or item.trang_thai == 'dang_xu_ly' %}
+                            <tr>
+                                <td>#{{ item.id }}</td>
+                                <td>{{ item.nguoi_gui.username|default:"Khách vãng lai" }}</td>
+                                <td class="fw-bold">{{ item.tieu_de }}</td>
+                                <td>{{ item.dia_chi|default:"Chưa cập nhật địa chỉ" }}</td>
+                                
+                                <td>
+                                    {% if item.hinh_anh %}
+                                        <img src="{{ item.hinh_anh.url }}" alt="Hình sự cố" class="img-thumbnail shadow-sm" style="width: 60px; height: 60px; object-fit: cover; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalImage{{ item.id }}" title="Bấm để phóng to">
+
+                                        <div class="modal fade" id="modalImage{{ item.id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-dark text-white">
+                                                        <h5 class="modal-title"><i class="fa-solid fa-image"></i> Hình ảnh thực tế - Sự cố #{{ item.id }}</h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body text-center bg-light">
+                                                        <img src="{{ item.hinh_anh.url }}" class="img-fluid rounded shadow" alt="Hình phóng to">
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            {% else %}
-                                <span class="text-muted small">Không có ảnh</span>
+                                    {% else %}
+                                        <span class="text-muted small">Không có ảnh</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.thoi_gian|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    {% if item.trang_thai == 'cho_duyet' %}
+                                        <span class="badge bg-warning text-dark">{{ item.get_trang_thai_display }}</span>
+                                    {% else %}
+                                        <span class="badge bg-info text-dark">{{ item.get_trang_thai_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'map_home' %}?focus_id={{ item.id }}" class="btn btn-info btn-sm text-white shadow-sm" title="Định vị trên bản đồ">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </a>
+                                    <a href="{% url 'duyet_phan_anh' item.id %}" class="btn btn-success btn-sm" title="Duyệt / Cập nhật">
+                                        <i class="fa-solid fa-check"></i>
+                                    </a>
+                                    
+                                    <a href="{% url 'xoa_phan_anh' item.id %}" class="btn btn-danger btn-sm" title="Xóa" onclick="return confirm('Ngài có chắc chắn muốn xóa phản ánh này không? Xóa là mất luôn đó nha!');">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
                             {% endif %}
-                        </td>
-                        <td>{{ item.thoi_gian|date:"d/m/Y H:i" }}</td>
-                        <td>
-                            {% if item.trang_thai == 'cho_duyet' %}
-                                <span class="badge bg-warning text-dark">{{ item.get_trang_thai_display }}</span>
-                            {% elif item.trang_thai == 'dang_xu_ly' %}
-                                <span class="badge bg-info text-dark">{{ item.get_trang_thai_display }}</span>
-                            {% else %}
-                                <span class="badge bg-success">{{ item.get_trang_thai_display }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="{% url 'duyet_phan_anh' item.id %}" class="btn btn-success btn-sm" title="Duyệt / Cập nhật">
-                                <i class="fa-solid fa-check"></i>
-                            </a>
-                            
-                            <a href="{% url 'xoa_phan_anh' item.id %}" class="btn btn-danger btn-sm" title="Xóa" onclick="return confirm('Ngài có chắc chắn muốn xóa phản ánh này không? Xóa là mất luôn đó nha!');">
-                                <i class="fa-solid fa-trash"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="8" class="text-center text-muted">Chưa có phản ánh nào.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <h4 class="mb-3 text-danger"><i class="fa-solid fa-headset"></i> Danh sách Yêu cầu Hỗ trợ</h4>
-    <div class="card shadow-sm mb-5">
-        <div class="card-body overflow-auto">
-            <table class="table table-hover align-middle">
-                <thead class="table-secondary">
-                    <tr>
-                        <th>ID</th>
-                        <th>Người yêu cầu</th>
-                        <th>Chủ đề</th>
-                        <th>Nội dung</th>
-                        <th>Trạng thái</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ht in ds_ho_tro %}
-                    <tr>
-                        <td>#{{ ht.id }}</td>
-                        <td class="fw-bold">{{ ht.ho_ten }} <br><small class="text-muted">{{ ht.sdt|default:"" }}</small></td>
-                        <td>{{ ht.get_chu_de_display }}</td>
-                        <td>{{ ht.noi_dung|truncatechars:50 }}</td>
-                        <td>
-                            {% if ht.da_xu_ly %}
-                                <span class="badge bg-success">Đã xử lý</span>
-                            {% else %}
-                                <span class="badge bg-danger">Chờ phản hồi</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <button class="btn btn-primary btn-sm">Trả lời</button>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="6" class="text-center text-muted">Chưa có yêu cầu hỗ trợ nào.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <h4 class="mb-3 text-success mt-5"><i class="fa-solid fa-users"></i> Danh sách Tài khoản Người dùng</h4>
-        <div class="card shadow-sm mb-5">
-            <div class="card-body overflow-auto">
-                <table class="table table-hover align-middle">
-                    <thead class="table-success">
-                        <tr>
-                            <th>ID</th>
-                            <th>Tên đăng nhập</th>
-                            <th>Email</th>
-                            <th>Quyền hạn</th>
-                            <th>Trạng thái</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for u in ds_user %}
-                        <tr>
-                            <td>#{{ u.id }}</td>
-                            <td class="fw-bold">{{ u.username }}</td>
-                            <td>{{ u.email|default:"<span class='text-muted'>Không có email</span>"|safe }}</td>
-                            <td>
-                                {% if u.is_superuser %}
-                                    <span class="badge bg-danger">Admin Tổng</span>
-                                {% elif u.is_staff %}
-                                    <span class="badge bg-warning text-dark">Nhân viên</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Người dùng thường</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if u.is_active %}
-                                    <span class="text-success fw-bold"><i class="fa-solid fa-circle-check"></i> Hoạt động</span>
-                                {% else %}
-                                    <span class="text-danger fw-bold"><i class="fa-solid fa-ban"></i> Bị khóa</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                            {% if u.is_superuser %}
-                                <span class="badge bg-light text-muted border"><i class="fa-solid fa-shield"></i> Quyền tối cao</span>
-                            {% else %}
-                                <a href="{% url 'khoa_user' u.id %}" class="btn btn-warning btn-sm" title="Khóa / Mở khóa">
-                                    <i class="fa-solid fa-lock"></i>
-                                </a>
-                                
-                                <a href="{% url 'xoa_user' u.id %}" class="btn btn-danger btn-sm" title="Xóa tài khoản" onclick="return confirm('Chắc chắn muốn xóa vĩnh viễn User này không?');">
-                                    <i class="fa-solid fa-user-xmark"></i>
-                                </a>
-                            {% endif %}
-                        </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="6" class="text-center text-muted">Chưa có người dùng nào.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            {% empty %}
+                            <tr><td colspan="8" class="text-center text-muted">Chưa có phản ánh nào.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <div class="tab-pane fade" id="ho-tro" role="tabpanel">
+            <h4 class="mb-3 text-danger"><i class="fa-solid fa-headset"></i> Danh sách Yêu cầu Hỗ trợ</h4>
+            <div class="card shadow-sm mb-5">
+                <div class="card-body overflow-auto">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>ID</th>
+                                <th>Người yêu cầu</th>
+                                <th>Chủ đề</th>
+                                <th>Nội dung</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ht in ds_ho_tro %}
+                            <tr>
+                                <td>#{{ ht.id }}</td>
+                                <td class="fw-bold">{{ ht.ho_ten }} <br><small class="text-muted">{{ ht.sdt|default:"" }}</small></td>
+                                <td>{{ ht.get_chu_de_display }}</td>
+                                <td>{{ ht.noi_dung|truncatechars:50 }}</td>
+                                <td>
+                                    {% if ht.da_xu_ly %}
+                                        <span class="badge bg-success">Đã xử lý</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Chờ phản hồi</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm">Trả lời</button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted">Chưa có yêu cầu hỗ trợ nào.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
+        <div class="tab-pane fade" id="tai-khoan" role="tabpanel">
+            <h4 class="mb-3 text-success"><i class="fa-solid fa-users"></i> Danh sách Tài khoản Người dùng</h4>
+            <div class="card shadow-sm mb-5">
+                <div class="card-body overflow-auto">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-success">
+                            <tr>
+                                <th>ID</th>
+                                <th>Tên đăng nhập</th>
+                                <th>Email</th>
+                                <th>Quyền hạn</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in ds_user %}
+                            <tr>
+                                <td>#{{ u.id }}</td>
+                                <td class="fw-bold">{{ u.username }}</td>
+                                <td>{{ u.email|default:"<span class='text-muted'>Không có email</span>"|safe }}</td>
+                                <td>
+                                    {% if u.is_superuser %}
+                                        <span class="badge bg-danger">Admin Tổng</span>
+                                    {% elif u.is_staff %}
+                                        <span class="badge bg-warning text-dark">Nhân viên</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Người dùng thường</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if u.is_active %}
+                                        <span class="text-success fw-bold"><i class="fa-solid fa-circle-check"></i> Hoạt động</span>
+                                    {% else %}
+                                        <span class="text-danger fw-bold"><i class="fa-solid fa-ban"></i> Bị khóa</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                {% if u.is_superuser %}
+                                    <span class="badge bg-light text-muted border"><i class="fa-solid fa-shield"></i> Quyền tối cao</span>
+                                {% else %}
+                                    <a href="{% url 'khoa_user' u.id %}" class="btn btn-warning btn-sm" title="Khóa / Mở khóa">
+                                        <i class="fa-solid fa-lock"></i>
+                                    </a>
+                                    
+                                    <a href="{% url 'xoa_user' u.id %}" class="btn btn-danger btn-sm" title="Xóa tài khoản" onclick="return confirm('Chắc chắn muốn xóa vĩnh viễn User này không?');">
+                                        <i class="fa-solid fa-user-xmark"></i>
+                                    </a>
+                                {% endif %}
+                            </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted">Chưa có người dùng nào.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="lich-su" role="tabpanel">
+            <h4 class="mb-3 text-secondary"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử Phản Ánh Đã Xử Lý</h4>
+            <div class="card shadow-sm mb-5">
+                <div class="card-body overflow-auto">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>ID</th>
+                                <th>Người gửi</th>
+                                <th>Tiêu đề</th>
+                                <th>Hình ảnh</th> 
+                                <th>Thời gian</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in ds_phan_anh %}
+                                {% if item.trang_thai != 'cho_duyet' and item.trang_thai != 'dang_xu_ly' %}
+                                <tr class="table-light text-muted">
+                                    <td>#{{ item.id }}</td>
+                                    <td>{{ item.nguoi_gui.username|default:"Khách vãng lai" }}</td>
+                                    <td class="fw-bold">{{ item.tieu_de }}</td>
+                                    <td>
+                                        {% if item.hinh_anh %}
+                                            <img src="{{ item.hinh_anh.url }}" alt="Hình sự cố" class="img-thumbnail shadow-sm opacity-75" style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalHistory{{ item.id }}">
+
+                                            <div class="modal fade" id="modalHistory{{ item.id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header bg-dark text-white">
+                                                            <h5 class="modal-title"><i class="fa-solid fa-image"></i> Lịch sử - Sự cố #{{ item.id }}</h5>
+                                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body text-center bg-light">
+                                                            <img src="{{ item.hinh_anh.url }}" class="img-fluid rounded shadow">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="small">Không có ảnh</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.thoi_gian|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <span class="badge bg-success"><i class="fa-solid fa-check-double"></i> {{ item.get_trang_thai_display }}</span>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div> </div> <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
