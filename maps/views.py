@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from .models import PhanAnh
@@ -25,19 +26,50 @@ from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point
 import json
 from .models import PhanAnh, HinhAnhPhanAnh
+from django.utils import timezone
 
 #trang admin 
 @staff_member_required(login_url='login') 
 def trang_quan_ly(request):
-    # Lấy dữ liệu từ bảng PhanAnh và HoTro và User 
-    ds_phan_anh = PhanAnh.objects.all().prefetch_related('danh_sach_anh').order_by('-id')
-    ds_ho_tro = HoTro.objects.all().order_by('-id')
-    ds_user = User.objects.all().order_by('-id')
-    
+    from datetime import timedelta
+    # 1. Tự động dọn rác quá 7 ngày (giữ nguyên logic cũ)
+    thoi_han = timezone.now() - timedelta(days=7)
+    PhanAnh.objects.filter(da_xoa=True, ngay_xoa__lt=thoi_han).delete()
+
+    # 2. Lấy dữ liệu gốc (Chưa phân trang)
+    tat_ca_tieu_de = PhanAnh.objects.filter(da_xoa=False).values_list('tieu_de', flat=True).distinct()
+    tieu_de_da_chon = request.GET.getlist('filter_tieu_de')
+    focus_id = request.GET.get('focus_id')
+    pa_list = PhanAnh.objects.filter(da_xoa=False).prefetch_related('danh_sach_anh').order_by('-id')
+    if tieu_de_da_chon:
+        if focus_id:
+            pa_list = pa_list.filter(Q(tieu_de__in=tieu_de_da_chon) | Q(id=focus_id))
+        else:
+            pa_list = pa_list.filter(tieu_de__in=tieu_de_da_chon)
+    ht_list = HoTro.objects.all().order_by('-id')
+    us_list = User.objects.all().order_by('-id')
+
+    # 3. Thực hiện phân trang 15 mục/trang
+    # Phân trang cho Phản Ánh
+    paginator_pa = Paginator(pa_list, 15) 
+    page_pa = request.GET.get('page_pa') # Dùng tên biến riêng để tránh xung đột giữa các Tab
+    ds_phan_anh = paginator_pa.get_page(page_pa)
+
+    # Phân trang cho Hỗ Trợ
+    paginator_ht = Paginator(ht_list, 15)
+    page_ht = request.GET.get('page_ht')
+    ds_ho_tro = paginator_ht.get_page(page_ht)
+
+    # Thùng rác (Thường không cần phân trang nếu ít, nhưng nếu cần bạn làm tương tự)
+    ds_thung_rac = PhanAnh.objects.filter(da_xoa=True).order_by('-ngay_xoa')
+
     context = {
         'ds_phan_anh': ds_phan_anh,
         'ds_ho_tro': ds_ho_tro,
-        'ds_user': ds_user,
+        'ds_user': us_list, # Giữ nguyên hoặc phân trang tương tự
+        'ds_thung_rac': ds_thung_rac,
+        'tat_ca_tieu_de': tat_ca_tieu_de,
+        'tieu_de_da_chon': tieu_de_da_chon,
     }
     return render(request, 'maps/quan_ly.html', context)
 
@@ -57,13 +89,45 @@ def duyet_phan_anh(request, id):
     return redirect('trang_quan_ly') # Làm xong thì load lại trang quản lý
 
 @staff_member_required(login_url='login')
+@login_required
 def xoa_phan_anh(request, id):
-    phan_anh = get_object_or_404(PhanAnh, id=id)
-    phan_anh.delete() # Lệnh xóa khỏi Database
+    # Tìm phản ánh theo ID
+    if request.user.is_staff or request.user.is_superuser:
+        item = get_object_or_404(PhanAnh, id=id)
+    else:
+        item = get_object_or_404(PhanAnh, id=id, nguoi_gui=request.user)
+
+    # Thực hiện Xóa mềm
+    item.da_xoa = True
+    item.ngay_xoa = timezone.now()
+    item.save()
+    
+    messages.success(request, "✅ Đã chuyển vào Thùng rác.")
+
+    # Thông minh: Xóa ở trang nào thì load lại đúng trang đó
+    trang_truoc = request.META.get('HTTP_REFERER')
+    return redirect(trang_truoc) if trang_truoc else redirect('trang_quan_ly')
+def khoi_phuc_phan_anh(request, id):
+    item = get_object_or_404(PhanAnh, id=id)
+    item.da_xoa = False
+    item.ngay_xoa = None
+    item.save()
+    messages.success(request, "✅ Đã khôi phục phản ánh.")
+    # Sửa từ 'quan_ly' thành 'trang_quan_ly'
+    return redirect('trang_quan_ly')
+
+def xoa_vinh_vien_phan_anh(request, id):
+    item = get_object_or_404(PhanAnh, id=id)
+    item.delete() # Xóa thật khỏi Database
+    messages.warning(request, "🗑️ Đã xóa vĩnh viễn dữ liệu.")
+    # Sửa từ 'quan_ly' thành 'trang_quan_ly'
     return redirect('trang_quan_ly')
 
 @staff_member_required(login_url='login')
 def khoa_user(request, id):
+    if not request.user.is_superuser:
+        messages.error(request, "⚠️ Bạn không có quyền thực hiện thao tác này!")
+        return redirect('trang_quan_ly')
     user_can_khoa = get_object_or_404(User, id=id)
     
     # BẢO HIỂM: Không cho phép tự khóa Admin Tổng (chống tự hủy)
@@ -75,6 +139,9 @@ def khoa_user(request, id):
 
 @staff_member_required(login_url='login')
 def xoa_user(request, id):
+    if not request.user.is_superuser:
+        messages.error(request, "⚠️ Bạn không có quyền thực hiện thao tác này!")
+        return redirect('trang_quan_ly')
     user_can_xoa = get_object_or_404(User, id=id)
     
     # BẢO HIỂM: Không cho phép tự xóa Admin Tổng
@@ -95,8 +162,11 @@ def map_home(request):
 
 # 3. Trang Danh sách
 def list_view(request):
-    danh_sach = PhanAnh.objects.all().order_by('-id') # Sửa thành -id để bài mới nhất lên đầu
-    return render(request, 'maps/list.html', {'phan_anh': danh_sach})
+    danh_sach_all = PhanAnh.objects.filter(da_xoa=False).order_by('-id')
+    paginator = Paginator(danh_sach_all, 15)
+    page_number = request.GET.get('page')
+    phan_anh = paginator.get_page(page_number)
+    return render(request, 'maps/list.html', {'phan_anh': phan_anh})
 
 # 4. ĐĂNG KÝ
 def register_view(request):
@@ -270,16 +340,23 @@ def cap_nhat_trang_thai(request, id_phan_anh, trang_thai_moi):
     return redirect('quan_ly_hien_truong')
 
 def api_get_points(request):
-    danh_sach = PhanAnh.objects.exclude(trang_thai='cho_duyet')
+    # Chỉ lấy những điểm chưa bị xóa
+    danh_sach = PhanAnh.objects.filter(da_xoa=False).exclude(trang_thai='cho_duyet')
     data = []
     for item in danh_sach:
         lat, lng = 0, 0
         try:
             if item.du_lieu_toa_do:
-                parts = item.du_lieu_toa_do.split(',')
-                lat, lng = float(parts[0].strip()), float(parts[1].strip())
+                # Dùng json.loads vì tọa độ của bạn lưu dạng [{"lat":..., "lng":...}]
+                coords = json.loads(item.du_lieu_toa_do)
+                if coords:
+                    lat, lng = coords[0]['lat'], coords[0]['lng']
         except: pass
-        data.append({'id': item.id, 'title': item.tieu_de, 'lat': lat, 'lng': lng, 'status': item.trang_thai, 'image_url': item.hinh_anh.url if item.hinh_anh else '', 'detail_url': f"/chi-tiet/{item.id}/"})
+        data.append({
+            'id': item.id, 'title': item.tieu_de, 'lat': lat, 'lng': lng, 
+            'status': item.trang_thai, 'image_url': item.hinh_anh.url if item.hinh_anh else '', 
+            'detail_url': f"/chi-tiet/{item.id}/"
+        })
     return JsonResponse(data, safe=False)
 
 
@@ -380,21 +457,6 @@ def huong_dan(request):
 
 def hotline(request):
     return render(request, 'maps/hotline.html')
-
-
-def xoa_phan_anh(request, pk):
-    # 1. Tìm phản ánh theo ID và phải đúng là của người đang đăng nhập gửi (nguoi_gui=request.user)
-    # Để tránh ông A xóa trộm bài của ông B
-    pa = get_object_or_404(PhanAnh, pk=pk, nguoi_gui=request.user)
-    
-    # 2. Kiểm tra trạng thái: Chỉ cho xóa khi "Chờ tiếp nhận"
-    if pa.trang_thai == 'cho_duyet':
-        pa.delete()
-        messages.success(request, "✅ Đã xóa phản ánh thành công!")
-    else:
-        messages.error(request, "⚠️ Không thể xóa phản ánh đang hoặc đã xử lý!")
-        
-    return redirect('profile')
 
 def cskh(request):
     if request.method == 'POST':

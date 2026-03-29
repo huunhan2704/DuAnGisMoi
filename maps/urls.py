@@ -50,7 +50,7 @@ urlpatterns = [
     path('danh-ba-khan-cap/', views.hotline, name='hotline'),
     
     # 12. Xóa phản ánh
-    path('xoa-phan-anh/<int:pk>/', views.xoa_phan_anh, name='xoa_phan_anh'),
+    path('xoa-phan-anh/<int:id>/', views.xoa_phan_anh, name='xoa_phan_anh'),
     
     # 13. CSKH
     path('trung-tam-ho-tro/', views.cskh, name='cskh'),
@@ -58,7 +58,6 @@ urlpatterns = [
     #14. admin 
     path('quan-ly/', views.trang_quan_ly, name='trang_quan_ly'),
     path('duyet-phan-anh/<int:id>/', views.duyet_phan_anh, name='duyet_phan_anh'),
-    path('xoa-phan-anh/<int:id>/', views.xoa_phan_anh, name='xoa_phan_anh'),
     path('tra-loi-ho-tro/<int:id>/', views.tra_loi_ho_tro, name='tra_loi_ho_tro'),
     
     # 15. Quản lý User
@@ -66,4 +65,7 @@ urlpatterns = [
     path('xoa-user/<int:id>/', views.xoa_user, name='xoa_user'),
     # 16. API quét vùng
     path('api/quet-vung/', views.api_quet_vung_postgis, name='api_quet_vung'),
+    # 17. Thùng rác
+    path('khoi-phuc/<int:id>/', views.khoi_phuc_phan_anh, name='khoi_phuc_phan_anh'),
+    path('xoa-vinh-vien/<int:id>/', views.xoa_vinh_vien_phan_anh, name='xoa_vinh_vien'),
 ]

@@ -2,6 +2,7 @@ from django.contrib.gis.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 # 1. MODEL PHẢN ÁNH
 class PhanAnh(models.Model):
@@ -43,6 +44,10 @@ class PhanAnh(models.Model):
     class Meta:
         verbose_name = "Tin Phản Ánh"
         verbose_name_plural = "Danh sách Phản Ánh"
+
+    # 8. THÙNG RÁC
+    da_xoa = models.BooleanField(default=False, verbose_name="Đã chuyển vào thùng rác")
+    ngay_xoa = models.DateTimeField(null=True, blank=True, verbose_name="Ngày xóa")
     
 # 2. MODEL PROFILE
 class Profile(models.Model):

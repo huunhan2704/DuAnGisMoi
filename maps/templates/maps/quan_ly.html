@@ -28,14 +28,21 @@
                         <i class="fa-solid fa-headset me-1"></i> Yêu Cầu Hỗ Trợ
                     </a>
                 </li>
+                {% if user.is_superuser %}
                 <li class="nav-item" role="presentation">
                     <a class="nav-link" data-bs-toggle="tab" href="#tai-khoan" role="tab" aria-selected="false">
                         <i class="fa-solid fa-users me-1"></i> Quản Lý Tài Khoản
                     </a>
                 </li>
+                {% endif %}
                 <li class="nav-item" role="presentation">
                     <a class="nav-link" data-bs-toggle="tab" href="#lich-su" role="tab" aria-selected="false">
                         <i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch Sử
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link text-warning fw-bold" data-bs-toggle="tab" href="#thung-rac" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-trash-can me-1"></i> Thùng Rác
                     </a>
                 </li>
 
@@ -74,6 +81,39 @@
 
         <div class="tab-pane fade show active" id="phan-anh" role="tabpanel">
             <h4 class="mb-3 text-primary"><i class="fa-solid fa-map-location-dot"></i> Danh sách Phản Ánh Sự Cố</h4>
+            <div class="card shadow-sm mb-3 border-primary">
+    <div class="card-body py-2">
+        <form method="GET" action="" id="filterForm">
+            {% if request.GET.focus_id %}
+                <input type="hidden" name="focus_id" value="{{ request.GET.focus_id }}">
+            {% endif %}
+
+            <div class="row align-items-center">
+                <div class="col-md-10">
+                    <label class="fw-bold small mb-1 text-muted">Lọc theo loại sự cố:</label>
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for tieu_de in tat_ca_tieu_de %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="filter_tieu_de" 
+                                   value="{{ tieu_de }}" id="check_{{ forloop.counter }}"
+                                   {% if tieu_de in tieu_de_da_chon %}checked{% endif %}
+                                   onchange="this.form.submit()">
+                            <label class="form-check-label small" for="check_{{ forloop.counter }}">
+                                {{ tieu_de }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-md-2 text-end">
+                    <a href="{% url 'trang_quan_ly' %}" class="btn btn-outline-secondary btn-sm shadow-sm">
+                        <i class="fa-solid fa-rotate-left"></i> Xóa lọc
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
             <div class="card shadow-sm mb-5">
                 <div class="card-body overflow-auto">
                     <table class="table table-hover align-middle">
@@ -151,6 +191,29 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                   <nav class="mt-3">
+    <ul class="pagination pagination-sm justify-content-center">
+        {% if ds_phan_anh.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page_pa=1{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">&laquo; Đầu</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page_pa={{ ds_phan_anh.previous_page_number }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Trước</a>
+            </li>
+        {% endif %}
+
+        <li class="page-item disabled"><span class="page-link text-dark">Trang {{ ds_phan_anh.number }} / {{ ds_phan_anh.paginator.num_pages }}</span></li>
+
+        {% if ds_phan_anh.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page_pa={{ ds_phan_anh.next_page_number }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Sau</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page_pa={{ ds_phan_anh.paginator.num_pages }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Cuối &raquo;</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
                 </div>
             </div>
         </div>
@@ -198,10 +261,27 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    <nav class="mt-3">
+                        <ul class="pagination pagination-sm justify-content-center">
+                            {% if ds_ho_tro.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?page_ht=1">&laquo; Đầu</a></li>
+                                <li class="page-item"><a class="page-link" href="?page_ht={{ ds_ho_tro.previous_page_number }}">Trước</a></li>
+                            {% endif %}
+
+                            <li class="page-item disabled">
+                                <span class="page-link text-dark fw-bold">Trang {{ ds_ho_tro.number }} / {{ ds_ho_tro.paginator.num_pages }}</span>
+                            </li>
+
+                            {% if ds_ho_tro.has_next %}
+                                <li class="page-item"><a class="page-link" href="?page_ht={{ ds_ho_tro.next_page_number }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}">Sau</a></li>
+                                <li class="page-item"><a class="page-link" href="?page_ht={{ ds_ho_tro.paginator.num_pages }}">Cuối &raquo;</a></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
-
+        {% if user.is_superuser %}
         <div class="tab-pane fade" id="tai-khoan" role="tabpanel">
             <h4 class="mb-3 text-success"><i class="fa-solid fa-users"></i> Danh sách Tài khoản Người dùng</h4>
             <div class="card shadow-sm mb-5">
@@ -261,6 +341,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <div class="tab-pane fade" id="lich-su" role="tabpanel">
             <h4 class="mb-3 text-secondary"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử Phản Ánh Đã Xử Lý</h4>
@@ -311,6 +392,45 @@
                                     </td>
                                 </tr>
                                 {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="thung-rac" role="tabpanel">
+            <h4 class="mb-3 text-warning"><i class="fa-solid fa-trash-can"></i> Thùng Rác (Tự động xóa sau 7 ngày)</h4>
+            <div class="card shadow-sm mb-5 border-warning">
+                <div class="card-body overflow-auto">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-warning">
+                            <tr>
+                                <th>ID</th>
+                                <th>Tiêu đề</th>
+                                <th>Ngày bị xóa</th>
+                                <th>Tình trạng</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in ds_thung_rac %}
+                            <tr class="table-light text-muted">
+                                <td>#{{ item.id }}</td>
+                                <td class="fw-bold text-decoration-line-through">{{ item.tieu_de }}</td>
+                                <td>{{ item.ngay_xoa|date:"d/m/Y H:i" }}</td>
+                                <td><span class="badge bg-danger">Chờ hủy vĩnh viễn</span></td>
+                                <td>
+                                    <a href="{% url 'khoi_phuc_phan_anh' item.id %}" class="btn btn-success btn-sm" title="Khôi phục lại">
+                                        <i class="fa-solid fa-trash-arrow-up"></i> Khôi phục
+                                    </a>
+                                    
+                                    <a href="{% url 'xoa_vinh_vien' item.id %}" class="btn btn-dark btn-sm" title="Xóa vĩnh viễn ngay lập tức" onclick="return confirm('Hành động này không thể hoàn tác. Chắc chắn xóa?');">
+                                        <i class="fa-solid fa-radiation"></i> Xóa sạch
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-4"><i class="fa-solid fa-box-open fa-3x mb-3 opacity-50"></i><br>Thùng rác đang trống.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

@@ -1,5 +1,6 @@
 // # 1. CÔNG CỤ CHỈ ĐƯỜNG (ROUTING)
 // Chức năng: Lấy vị trí GPS hiện tại của người dùng và vẽ đường đi ngắn nhất đến điểm sự cố.
+var routeColorIndex = 0;
 function veDuongDi(diemDenLat, diemDenLng) {
     // --- 1. ĐÓNG BẢNG CÔNG CỤ GIS KHI MỞ CHỈ ĐƯỜNG ---
     const gisBody = document.getElementById('gisToolsBody');
@@ -37,8 +38,28 @@ function veDuongDi(diemDenLat, diemDenLng) {
                         }).bindPopup(t).openPopup();
                     },
                     collapsible: true,
-                    lineOptions: { styles: [{ color: '#0d6efd', opacity: 0.8, weight: 6 }] }
+                    routeLine: function(route, options) {
+                        // Bảng màu: Xanh dương (chính), Đỏ, Xanh lá, Tím, Cam
+                        var colors = ['#0d6efd', '#dc3545', '#198754', '#6f42c1', '#fd7e14']; 
+                        var color = colors[routeColorIndex % colors.length];
+                        routeColorIndex++; // Tăng biến đếm
+
+                        return L.Routing.line(route, {
+                            addWaypoints: false,
+                            extendToWaypoints: true,
+                            routeWhileDragging: false,
+                            autoRoute: true,
+                            useZoomParameter: false,
+                            styles: [
+                                {color: 'black', opacity: 0.15, weight: 10}, // Viền bóng mờ
+                                {color: color, opacity: 0.9, weight: 6}      // Màu đường chính
+                            ]
+                        });
+                    }
                 }).addTo(map);
+                routingControl.on('routingstart', function() {
+                    routeColorIndex = 0; 
+                });
 
                 routingControl.show();
             },
@@ -275,8 +296,35 @@ function exportBufferReport() {
     });
     var link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
-    link.download = "baocao_phan_tich.csv";
+    let tenFileMoi = taoTenFileBaoCao(); 
+    link.download = tenFileMoi + ".csv";
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+// Hàm sinh tên file tự động theo ngày và số thứ tự (U1, U2...)
+function taoTenFileBaoCao() {
+    const homNay = new Date();
+    const ngay = homNay.getDate();
+    const thang = homNay.getMonth() + 1; 
+    const nam = homNay.getFullYear();
+    const chuoiNgay = `${ngay}-${thang}-${nam}`; // VD: 30-3-2026
+
+    // Lấy lịch sử tải file từ bộ nhớ trình duyệt
+    let duLieuXuat = JSON.parse(localStorage.getItem('lichSuXuatFile')) || {};
+
+    let soThuTu = 1;
+    // Kiểm tra xem có phải vẫn đang tải trong cùng 1 ngày không
+    if (duLieuXuat.ngay === chuoiNgay) {
+        soThuTu = duLieuXuat.dem + 1; // Cùng ngày thì cộng dồn lên U2, U3...
+    }
+
+    // Lưu lại số đếm mới vào bộ nhớ để lần sau tải nó biết đường cộng tiếp
+    localStorage.setItem('lichSuXuatFile', JSON.stringify({
+        ngay: chuoiNgay,
+        dem: soThuTu
+    }));
+
+    // Ráp lại thành tên hoàn chỉnh
+    return `Bao_Cao_Phan_Tich_${chuoiNgay}_U${soThuTu}`;
 }
 
 // # 11. ẨN/HIỆN BẢNG CÔNG CỤ GIS
