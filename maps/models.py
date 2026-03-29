@@ -98,3 +98,20 @@ class HoTro(models.Model):
 
     def __str__(self):
         return f"[{self.get_chu_de_display()}] - {self.ho_ten}"
+    
+# 5. KHO CHỨA NHIỀU HÌNH ẢNH CHO PHẢN ÁNH
+class HinhAnhPhanAnh(models.Model):
+    # Liên kết với bảng PhanAnh (Khi xóa Phản ánh thì xóa luôn ảnh)
+    phan_anh = models.ForeignKey(PhanAnh, on_delete=models.CASCADE, related_name='danh_sach_anh')
+    
+    # Cột chứa file ảnh
+    hinh_anh = models.ImageField(upload_to='hien_truong/chi_tiet/', verbose_name="Ảnh chi tiết")
+    
+    ngay_tai_len = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Hình Ảnh Phản Ánh"
+        verbose_name_plural = "Danh sách Hình Ảnh Chi Tiết"
+
+    def __str__(self):
+        return f"Ảnh phụ của sự cố: {self.phan_anh.tieu_de}"

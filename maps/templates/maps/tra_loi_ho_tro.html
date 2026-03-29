@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Soạn Email Phản Hồi | Urban Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-primary mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-envelope-open-text"></i> HỆ THỐNG GỬI EMAIL TỰ ĐỘNG</a>
+        <a href="{% url 'trang_quan_ly' %}" class="btn btn-light btn-sm">Quay lại trang Quản lý</a>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="card shadow-sm" style="max-width: 700px; margin: auto;">
+        <div class="card-header bg-dark text-white fw-bold">
+            <i class="fa-solid fa-reply"></i> Soạn Phản Hồi - Yêu cầu #{{ ht.id }}
+        </div>
+        <div class="card-body">
+            <div class="alert alert-secondary">
+                <p class="mb-1"><strong>Người gửi:</strong> {{ ht.ho_ten }} (<a href="mailto:{{ ht.email }}">{{ ht.email }}</a>)</p>
+                <p class="mb-2"><strong>Vấn đề:</strong> <span class="badge bg-danger">{{ ht.get_chu_de_display }}</span></p>
+                <div class="p-3 bg-white border rounded text-dark">
+                    <em>"{{ ht.noi_dung }}"</em>
+                </div>
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-primary"><i class="fa-solid fa-pen-nib"></i> Nội dung trả lời (Sẽ được gửi thẳng qua Email của khách hàng):</label>
+                    <textarea class="form-control" name="noidung_phan_hoi" rows="6" required placeholder="Gõ câu trả lời của ngài vào đây..."></textarea>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'trang_quan_ly' %}" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i> Hủy bỏ</a>
+                    <button type="submit" class="btn btn-success fw-bold"><i class="fa-solid fa-paper-plane"></i> BẤM GỬI EMAIL</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

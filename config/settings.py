@@ -80,7 +80,7 @@ DATABASES = {
         
         'NAME': 'duangismoi',       
         'USER': 'postgres',        
-        'PASSWORD': '123',
+        'PASSWORD': '281105',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -131,8 +131,13 @@ import os
 
 MEDIA_URL = '/media/'  # Đường dẫn trên trình duyệt
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Thư mục thật trên máy tính
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-LOGIN_URL = 'login'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
+EMAIL_PORT = 2525
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = '672cfc39694b8f' # Đây là Username của ông
+EMAIL_HOST_PASSWORD = 'ead7c6606f6186'
 
 import os
 

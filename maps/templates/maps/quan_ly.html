@@ -68,6 +68,7 @@
         </div>
     </div>
 </nav>
+
 <div class="container-fluid px-4">
     <div class="tab-content mt-4" id="adminTabContent">
 
@@ -97,25 +98,30 @@
                                 <td class="fw-bold">{{ item.tieu_de }}</td>
                                 <td>{{ item.dia_chi|default:"Chưa cập nhật địa chỉ" }}</td>
                                 
-                                <td>
+                                <td class="text-center align-middle">
                                     {% if item.hinh_anh %}
-                                        <img src="{{ item.hinh_anh.url }}" alt="Hình sự cố" class="img-thumbnail shadow-sm" style="width: 60px; height: 60px; object-fit: cover; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalImage{{ item.id }}" title="Bấm để phóng to">
+                                        <div class="position-relative d-inline-block">
+                                            
+                                            <button type="button" class="btn p-0 border-0"
+                                                    onclick="moGallery([
+                                                        '{{ item.hinh_anh.url }}'
+                                                        {% for img in item.danh_sach_anh.all %}
+                                                        , '{{ img.hinh_anh.url }}'
+                                                        {% endfor %}
+                                                    ], '{{ item.tieu_de|escapejs }}')"
+                                                    title="Xem toàn bộ hình ảnh">
+                                                <img src="{{ item.hinh_anh.url }}" alt="Hình ảnh" class="img-thumbnail shadow-sm" style="height: 60px; width: 60px; object-fit: cover;">
+                                            </button>
+                                            
+                                            {% if item.danh_sach_anh.count > 0 %}
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm" style="font-size: 0.65rem;">
+                                                +{{ item.danh_sach_anh.count }}
+                                            </span>
+                                            {% endif %}
 
-                                        <div class="modal fade" id="modalImage{{ item.id }}" tabindex="-1" aria-hidden="true">
-                                            <div class="modal-dialog modal-dialog-centered modal-lg">
-                                                <div class="modal-content">
-                                                    <div class="modal-header bg-dark text-white">
-                                                        <h5 class="modal-title"><i class="fa-solid fa-image"></i> Hình ảnh thực tế - Sự cố #{{ item.id }}</h5>
-                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body text-center bg-light">
-                                                        <img src="{{ item.hinh_anh.url }}" class="img-fluid rounded shadow" alt="Hình phóng to">
-                                                    </div>
-                                                </div>
-                                            </div>
                                         </div>
                                     {% else %}
-                                        <span class="text-muted small">Không có ảnh</span>
+                                        <span class="text-muted small"><i class="fa-solid fa-image-slash"></i> Không có ảnh</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ item.thoi_gian|date:"d/m/Y H:i" }}</td>
@@ -178,10 +184,15 @@
                                         <span class="badge bg-danger">Chờ phản hồi</span>
                                     {% endif %}
                                 </td>
+                                
                                 <td>
-                                    <button class="btn btn-primary btn-sm">Trả lời</button>
+                                    {% if ht.da_xu_ly %}
+                                        <button class="btn btn-secondary btn-sm" disabled><i class="fa-solid fa-check-double"></i> Đã phản hồi</button>
+                                    {% else %}
+                                        <a href="{% url 'tra_loi_ho_tro' ht.id %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-reply"></i> Trả lời</a>
+                                    {% endif %}
                                 </td>
-                            </tr>
+                                </tr>
                             {% empty %}
                             <tr><td colspan="6" class="text-center text-muted">Chưa có yêu cầu hỗ trợ nào.</td></tr>
                             {% endfor %}
@@ -306,6 +317,74 @@
                 </div>
             </div>
         </div>
-    </div> </div> <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </div> 
+</div> 
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+
+<div class="modal fade" id="modalXemAnh" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark border-0 shadow-lg">
+            <div class="modal-header border-bottom border-secondary py-2">
+                <h5 class="modal-title text-white fw-bold" id="tieudeGallery">Hình ảnh hiện trường</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <section id="image-slider" class="splide" aria-label="Incident Images">
+                    <div class="splide__track">
+                        <ul class="splide__list" id="khungChuaAnh">
+                            </ul>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var mySplide; 
+
+    function moGallery(mangHinhAnh, tieuDe) {
+        document.getElementById('tieudeGallery').innerText = "Sự cố: " + tieuDe;
+        
+        var khung = document.getElementById('khungChuaAnh');
+        khung.innerHTML = ''; 
+        
+        // Dùng Set lọc trực tiếp trong JS để trị dứt điểm ảnh trùng lặp
+        var mangKhongTrung = [...new Set(mangHinhAnh)];
+        var anhHopLe = mangKhongTrung.filter(function(url) {
+            return url && url.trim() !== "";
+        });
+
+        if (anhHopLe.length === 0) {
+            khung.innerHTML = '<li class="splide__slide text-center text-white p-5">Không có hình ảnh đính kèm!</li>';
+        } else {
+            // Dùng cộng chuỗi truyền thống để Django không bị "ngáo"
+            anhHopLe.forEach(function(url) {
+                var htmlLi = '<li class="splide__slide text-center">';
+                htmlLi += '<img src="' + url + '" style="max-height: 75vh; max-width: 100%; object-fit: contain;">';
+                htmlLi += '</li>';
+                khung.innerHTML += htmlLi;
+            });
+        }
+
+        var myModal = new bootstrap.Modal(document.getElementById('modalXemAnh'));
+        myModal.show();
+
+        document.getElementById('modalXemAnh').addEventListener('shown.bs.modal', function () {
+            if (mySplide) mySplide.destroy(); 
+            
+            mySplide = new Splide('#image-slider', {
+                type   : 'fade', 
+                rewind : true,   
+                pagination: true,  
+                arrows: (anhHopLe.length > 1) 
+            }).mount();
+        }, { once: true });
+    }
+</script>
 </body>
 </html>

@@ -117,7 +117,7 @@
                     </a>
                     
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-                         {% if user.is_superuser or user.is_staff %}
+                        {% if user.is_superuser or user.is_staff %}
                         <li>
                             <a class="dropdown-item fw-bold" style="color: #dc3545;" href="/quan-ly/">
                                 <i class="fa-solid fa-shield-halved me-2"></i> Quản trị hệ thống
@@ -179,8 +179,8 @@
                 </div>
                 <div class="mb-3"><label class="form-label fw-bold small text-secondary">Địa chỉ cụ thể</label><input type="text" id="dia_chi" class="form-control" placeholder="Ví dụ: Số 10 đường Nguyễn Huệ..."></div>
                 <div class="mb-3"><label class="form-label fw-bold small text-secondary">Mô tả</label><textarea id="mo_ta" class="form-control" rows="3" placeholder="Mô tả chi tiết..."></textarea></div>
-                <div class="mb-4"><label class="form-label fw-bold small text-secondary">Hình ảnh</label><input type="file" id="hinh_anh" class="form-control" accept="image/*"></div>
-                <button onclick="guiBaoCao()" class="btn btn-success w-100 py-2 fw-bold shadow-sm mb-3"><i class="fa-solid fa-paper-plane me-2"></i> Gửi Phản Ánh</button>
+                <div class="mb-4"><label class="form-label fw-bold small text-secondary">Hình ảnh</label><input type="file" id="hinh_anh" name="hinh_anh" class="form-control" accept="image/*" multiple></div>
+                <button onclick="guiBaoCao(event)" class="btn btn-success w-100 py-2 fw-bold shadow-sm mb-3"><i class="fa-solid fa-paper-plane me-2"></i> Gửi Phản Ánh</button>
                 {% csrf_token %} 
             {% else %}
                 <div class="alert alert-warning text-center shadow-sm py-4">
@@ -250,11 +250,20 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     
     <script>
+        // 1. Khởi tạo Bản đồ
         var map = L.map('map', {zoomControl: false}).setView([10.762622, 106.660172], 13);
         var routingControl = null;
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+        // Fix lỗi 403 bằng CartoDB
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
         L.control.zoom({ position: 'bottomright' }).addTo(map);      
         
+        // 2. Cấu hình Search -THÊM TÍNH NĂNG TỰ CHẤM ĐIỂM
         var geocoder = L.Control.geocoder({ 
             defaultMarkGeocode: false,
             collapsed: false, 
@@ -262,11 +271,32 @@
             geocoder: L.Control.Geocoder.nominatim()
         })
         .on('markgeocode', function(e) {
+            // --- PHẦN GIỮ NGUYÊN (Tính toán khung nhìn) ---
             var bbox = e.geocode.bbox;
             var poly = L.polygon([bbox.getSouthEast(), bbox.getNorthEast(), bbox.getNorthWest(), bbox.getSouthWest()]);
             map.fitBounds(poly.getBounds());
-        }).addTo(map);
 
+            // --- PHẦN THÊM MỚI (Tự động chấm điểm & Điền địa chỉ) ---
+            var center = e.geocode.center; // Lấy tọa độ tâm vừa search
+            var addressName = e.geocode.name; // Lấy tên địa chỉ chi tiết
+
+            // A. Bay tới vị trí chính xác với độ zoom cao (18) cho ngầu
+            map.flyTo(center, 18, { animate: true, duration: 1.5 });
+
+            // B. Tự động gọi hàm addMarker để chấm dấu xanh lên map và lưu vào danh sách
+            if (typeof addMarker === 'function') {
+                addMarker(center.lat, center.lng);
+            }
+
+            // C. Tự động điền tên địa điểm vào ô "Địa chỉ cụ thể" cho người dùng
+            var inputDiaChi = document.getElementById('dia_chi');
+            if (inputDiaChi) {
+                inputDiaChi.value = addressName;
+            }
+        })
+        .addTo(map);
+
+        // GIỮ NGUYÊN ĐOẠN SETUP GIAO DIỆN CỦA ÔNG
         setTimeout(function() {
             var geocoderContainer = geocoder.getContainer();
             var searchBox = document.getElementById('custom-search-box');
@@ -277,6 +307,7 @@
 
         setTimeout(() => map.invalidateSize(), 500);
 
+        // 3. Khởi tạo các Lớp dữ liệu
         var lopChoDuyet = L.markerClusterGroup({ disableClusteringAtZoom: 17 }).addTo(map);
         var lopDangXuLy = L.markerClusterGroup({ disableClusteringAtZoom: 17 }).addTo(map); 
         var lopDaXong = L.markerClusterGroup({ disableClusteringAtZoom: 17 }).addTo(map);
@@ -288,7 +319,7 @@
         };
         L.control.layers(null, overlayMaps, {position: 'topleft'}).addTo(map);
 
-        // Đổ dữ liệu từ Database vào biến allData
+        // 4. Đổ dữ liệu từ Database
         var allData = [
             {% for p in phan_anh %}
                 { 
@@ -299,10 +330,8 @@
                     image: "{% if p.hinh_anh %}{{ p.hinh_anh.url }}{% endif %}",
                     status_text: "{{ p.get_trang_thai_display }}",
                     status_code: "{{ p.trang_thai }}",
-                    coords: {{ p.du_lieu_toa_do|safe|default:"[]" }} 
-                    
-                }
-            {% if not forloop.last %},{% endif %}
+                    coords: {% if p.du_lieu_toa_do %}{{ p.du_lieu_toa_do|safe }}{% else %}[]{% endif %}
+                }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ];
         
@@ -314,7 +343,6 @@
         heatLayerDangXuLy = L.heatLayer([], { ...heatConfig, gradient: { 0.3: 'rgba(255,215,0,0.05)', 0.7: 'rgba(255,215,0,0.3)', 1.0: 'rgba(255,165,0,0.5)' } });
         heatLayerDaXong = L.heatLayer([], { ...heatConfig, gradient: { 0.3: 'rgba(0,255,0,0.05)', 0.7: 'rgba(0,255,0,0.3)', 1.0: 'rgba(0,128,0,0.5)' } });
 
-        // Các biến dùng chung cho logic GIS
         var bufferLayerGroup = L.layerGroup().addTo(map); 
         var isBufferMode = false;
         var foundPointsData = []; 
@@ -326,60 +354,36 @@
     <script src="{% static 'maps/js/gis_tools.js' %}"></script>
 
     <script>
-        // Gọi hàm từ gis_tools.js để vẽ bản đồ
-        renderMap(allData);
-// ==========================================
-        // TÍNH NĂNG ĐỊNH VỊ TỪ TRANG QUẢN LÝ
-        // ==========================================
-        const urlParams = new URLSearchParams(window.location.search);
-        const focusId = urlParams.get('focus_id');
-
-        if (focusId) {
-            const targetPoint = allData.find(item => item.id == focusId);
+        // 5. Khởi chạy hiển thị sau khi đã nạp đủ thư viện
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof renderMap === 'function') {
+                renderMap(allData);
+            }
             
-            if (targetPoint && targetPoint.coords) {
-                let lat, lng;
-                let dataToaDo = targetPoint.coords;
-
-                // 🎯 ĐỌC ĐÚNG ĐỊNH DẠNG TỪ ẢNH BẠN GỬI: [{lat: 10.xxx, lng: 106.xxx}]
-                if (Array.isArray(dataToaDo) && dataToaDo.length > 0 && dataToaDo[0].lat !== undefined) {
-                    lat = parseFloat(dataToaDo[0].lat);
-                    lng = parseFloat(dataToaDo[0].lng);
-                } 
-                // Dự phòng: Nếu là mảng [kinh_do, vi_do] bình thường
-                else if (Array.isArray(dataToaDo) && dataToaDo.length >= 2 && typeof dataToaDo[0] === 'number') {
-                    lng = parseFloat(dataToaDo[0]);
-                    lat = parseFloat(dataToaDo[1]);
-                }
-
-                // Nếu lấy được tọa độ thành công thì bắt đầu cất cánh bay
-                if (lat && lng) {
+            // Logic Định vị Focus
+            const urlParams = new URLSearchParams(window.location.search);
+            const focusId = urlParams.get('focus_id');
+            if (focusId) {
+                const targetPoint = allData.find(item => item.id == focusId);
+                if (targetPoint && targetPoint.coords && targetPoint.coords.length > 0) {
+                    let lat = parseFloat(targetPoint.coords[0].lat);
+                    let lng = parseFloat(targetPoint.coords[0].lng);
                     setTimeout(() => {
                         map.flyTo([lat, lng], 18, { animate: true, duration: 1.5 });
-
-                        // Vẽ vòng tròn đỏ nhấp nháy làm hồng tâm
                         const highlightCircle = L.circleMarker([lat, lng], {
                             radius: 30, color: 'red', fillColor: '#f03', fillOpacity: 0.5, weight: 3
                         }).addTo(map);
-
-                        // Tự động xóa vòng tròn sau 4 giây
                         setTimeout(() => { map.removeLayer(highlightCircle); }, 4000);
-                        
-                    }, 800); // Chờ 0.8s cho map load xong
-                } 
+                    }, 800);
+                }
             }
-        }
+        });
 
-        // ==========================================
-        // CÁC SỰ KIỆN KHÁC (HEATMAP, QUÉT VÙNG, CLICK)
-        // ==========================================
-
-        // Gắn sự kiện cho Heatmap
+        // 6. Sự kiện Heatmap & GIS
         document.getElementById('toggleHeatmap').addEventListener('change', syncHeatmap);
         map.on('overlayadd', syncHeatmap); 
         map.on('overlayremove', syncHeatmap);
 
-        // Gắn sự kiện cho Nút chọn tâm Vùng đệm
         document.getElementById('btnBufferMode').addEventListener('click', function() {
             isBufferMode = true;
             document.getElementById('map').style.cursor = 'crosshair';
@@ -387,19 +391,16 @@
             this.className = 'btn btn-warning w-100 btn-sm fw-bold mb-2';
         });
 
-        // Gắn sự kiện Click lên bản đồ (Tạo điểm hoặc Quét vùng)
+        // 7. Xử lý CLICK BẢN ĐỒ (BẢN CHUẨN)
         map.on('click', function(e) {
             if (isBufferMode) {
                 document.querySelectorAll('#categoryList input:checked').forEach(cb => cb.checked = false);
                 document.querySelector('#categoryDropdownBtn span').innerText = "📍 Chọn loại sự cố đang xử lý...";
                 selectedCategories = [];
                 bufferLayerGroup.clearLayers();
-                var rM = parseFloat(document.getElementById('bufferRadius').value);
+                var rM = parseFloat(document.getElementById('bufferRadius').value) || 500;
                 L.circle(e.latlng, { color: 'red', fillColor: '#f03', fillOpacity: 0.1, radius: rM }).addTo(bufferLayerGroup);
-                
-                // Hàm analyzeData có trong gis_tools.js
-                analyzeData([e.latlng]); 
-                
+                if (typeof analyzeData === 'function') analyzeData([e.latlng]); 
                 var btn = document.getElementById('btnBufferMode');
                 btn.innerHTML = '<i class="fa-solid fa-crosshairs me-1"></i> Hoặc Click chọn tâm';
                 btn.className = 'btn btn-primary w-100 btn-sm fw-bold mb-2';
@@ -413,28 +414,90 @@
             }
 
             var toaDoMoi = e.latlng;
-            var KHOANG_CACH_TOI_THIEU = 10; 
+            var KHOANG_CACH_TOI_THIEU = 15; 
             var biTrung = false;
 
-            for (var i = 0; i < danhSachDiemDaChon.length; i++) {
-                var toaDoCu = danhSachDiemDaChon[i];
-                var khoangCach = toaDoMoi.distanceTo(toaDoCu); 
-                if (khoangCach < KHOANG_CACH_TOI_THIEU) {
+            // Kiểm tra trùng lắp điểm
+            for (var i = 0; i < markers.length; i++) {
+                var toaDoCu = L.latLng(markers[i].lat, markers[i].lng);
+                if (toaDoMoi.distanceTo(toaDoCu) < KHOANG_CACH_TOI_THIEU) {
                     biTrung = true;
                     break; 
                 }
             }
 
             if (biTrung) {
-                alert("📍 Điểm này bị trùng hoặc quá gần điểm cũ! Vui lòng chọn cách xa ra một chút nhé.");
+                alert("📍 Điểm này quá gần điểm cũ!");
                 return; 
             }
 
-            danhSachDiemDaChon.push(toaDoMoi);
-            
-            // Hàm addMarker có trong gis_tools.js
-            addMarker(e.latlng.lat, e.latlng.lng); 
+            if (typeof addMarker === 'function') {
+                addMarker(toaDoMoi.lat, toaDoMoi.lng); 
+            }
         });
+
+        // 8. Hàm Gửi Báo Cáo
+        function guiBaoCao(e) {
+            if (e && e.preventDefault) e.preventDefault();
+
+            var selectVal = document.getElementById('tieu_de').value;
+            var tieude = (selectVal === 'Khác') ? document.getElementById('input_khac').value : selectVal;
+            
+            if (!tieude || tieude.trim() === '') { 
+                alert("⚠️ Vui lòng chọn loại sự cố!"); 
+                return; 
+            }
+
+            var points = document.getElementById('points-data').value;
+            if (!points || points === "[]") { 
+                alert("⚠️ Vui lòng chấm điểm trên bản đồ!"); 
+                return; 
+            }
+
+            var btn = document.querySelector('button[onclick="guiBaoCao(event)"]');
+            var oldHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
+            btn.disabled = true;
+
+            var fd = new FormData();
+            fd.append('tieu_de', tieude);
+            fd.append('dia_chi', document.getElementById('dia_chi').value);
+            fd.append('mo_ta', document.getElementById('mo_ta').value);
+            fd.append('points_data', points);
+            
+            var inputHinhAnh = document.getElementById('hinh_anh');
+            if (inputHinhAnh.files.length > 0) {
+                for (var i = 0; i < inputHinhAnh.files.length; i++) {
+                    fd.append('hinh_anh', inputHinhAnh.files[i]); 
+                }
+            }
+
+            var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrf) fd.append('csrfmiddlewaretoken', csrf.value);
+
+            fetch('/luu-phan-anh/', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) { 
+                    alert("✅ Thành công!"); 
+                    location.reload(); 
+                } else { 
+                    alert("❌ Lỗi: " + d.message); 
+                }
+            })
+            .catch(() => alert("❌ Lỗi mạng!"))
+            .finally(() => { 
+                btn.innerHTML = oldHTML; 
+                btn.disabled = false; 
+            });
+        }
+
+        // Tự động hiện/ẩn ô "Khác"
+        document.getElementById('tieu_de').addEventListener('change', function() {
+            document.getElementById('input_khac').style.display = (this.value === 'Khác') ? 'block' : 'none';
+        });
+
+        function locateUser() { map.locate({setView: true, maxZoom: 16}); }
     </script>
 </body>
 </html>

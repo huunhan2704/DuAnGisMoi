@@ -365,7 +365,18 @@ function guiBaoCao() {
     fd.append('dia_chi', document.getElementById('dia_chi').value);
     fd.append('mo_ta', document.getElementById('mo_ta').value);
     fd.append('points_data', points);
-    if (document.getElementById('hinh_anh').files[0]) fd.append('hinh_anh', document.getElementById('hinh_anh').files[0]);
+    
+    // ===> BỘ ĐỘNG CƠ GOM NHIỀU ẢNH Ở ĐÂY <===
+    // --- 5. BỘ GOM ẢNH HÀNG LOẠT (ĐÃ FIX LỖI GỬI 1 TẤM) ---
+    var inputHinhAnh = document.getElementById('hinh_anh');
+    if (inputHinhAnh && inputHinhAnh.files.length > 0) {
+        // Tốt nhất là tạo một mảng chứa file và ném vào FormData 1 lần
+        // FormData sẽ tự động gom Multiple khi append file
+        for (var i = 0; i < inputHinhAnh.files.length; i++) {
+            fd.append('hinh_anh', inputHinhAnh.files[i]); 
+        }
+    }
+
     var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
     if (csrf) fd.append('csrfmiddlewaretoken', csrf.value);
 

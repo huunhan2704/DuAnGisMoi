@@ -59,6 +59,7 @@ urlpatterns = [
     path('quan-ly/', views.trang_quan_ly, name='trang_quan_ly'),
     path('duyet-phan-anh/<int:id>/', views.duyet_phan_anh, name='duyet_phan_anh'),
     path('xoa-phan-anh/<int:id>/', views.xoa_phan_anh, name='xoa_phan_anh'),
+    path('tra-loi-ho-tro/<int:id>/', views.tra_loi_ho_tro, name='tra_loi_ho_tro'),
     
     # 15. Quản lý User
     path('khoa-user/<int:id>/', views.khoa_user, name='khoa_user'),

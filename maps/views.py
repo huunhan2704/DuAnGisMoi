@@ -17,18 +17,20 @@ from django.contrib.auth.decorators import login_required
 from .models import HoTro
 from django.contrib import messages
 from django.shortcuts import render
+from django.core.mail import send_mail
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point
 import json
+from .models import PhanAnh, HinhAnhPhanAnh
 
 #trang admin 
 @staff_member_required(login_url='login') 
 def trang_quan_ly(request):
     # Lấy dữ liệu từ bảng PhanAnh và HoTro và User 
-    ds_phan_anh = PhanAnh.objects.all().order_by('-id')
+    ds_phan_anh = PhanAnh.objects.all().prefetch_related('danh_sach_anh').order_by('-id')
     ds_ho_tro = HoTro.objects.all().order_by('-id')
     ds_user = User.objects.all().order_by('-id')
     
@@ -131,38 +133,74 @@ def logout_view(request):
 def luu_phan_anh(request):
     if request.method == 'POST':
         try:
+            # --- 1. LẤY DỮ LIỆU TỪ FORM ---
             tieude = request.POST.get('tieu_de')
             mota = request.POST.get('mo_ta')
             toado = request.POST.get('points_data')
             diachi = request.POST.get('dia_chi') 
-            hinh = request.FILES.get('hinh_anh')
-
+            
+            # --- 2. KHỞI TẠO ĐỐI TƯỢNG PHẢN ÁNH ---
             new_pa = PhanAnh(
                 tieu_de=tieude,
                 mo_ta=mota,
                 dia_chi=diachi,
                 du_lieu_toa_do=toado,
-                hinh_anh=hinh
             )
 
-            # ===> XỬ LÝ POSTGIS: Tạo đối tượng Point từ tọa độ <===
+            # --- 3. XỬ LÝ TỌA ĐỘ (POSTGIS) ---
             if toado and toado != "[]":
                 try:
-                    points_list = json.loads(toado) # Dịch chuỗi JSON thành List Python
+                    points_list = json.loads(toado)
                     if len(points_list) > 0:
+                        # Lấy điểm đầu tiên làm tọa độ chính
                         lat = float(points_list[0]['lat'])
                         lng = float(points_list[0]['lng'])
-                        # LƯU Ý CỰC KỲ QUAN TRỌNG: Point của GeoDjango nhận (Kinh độ, Vĩ độ) - ngược với Google Map
                         new_pa.vi_tri = Point(lng, lat, srid=4326)
                 except Exception as e:
-                    print("Lỗi chuyển đổi PostGIS:", e)
+                    print("⚠️ Lỗi chuyển đổi PostGIS:", e)
 
+            # Gắn người dùng nếu đã đăng nhập
             if request.user.is_authenticated:
                 new_pa.nguoi_gui = request.user
             
+            # Lưu vào Database lần 1 để lấy ID của Phản ánh
             new_pa.save()
+
+            # --- 4. XỬ LÝ LƯU NHIỀU HÌNH ẢNH (BỘ LỌC THÔNG MINH) ---
+            # Dùng 'getlist' để hốt toàn bộ file gửi lên từ khóa 'hinh_anh'
+            danh_sach_hinh = request.FILES.getlist('hinh_anh')
+            
+            # --- MÁY QUÉT X-QUANG (DEBUG TRÊN TERMINAL) ---
+            print("\n" + "="*40)
+            print(f"🚀 THÔNG TIN NHẬN ĐƯỢC:")
+            print(f"👉 Tiêu đề: {tieude}")
+            print(f"👉 Số lượng ảnh nhận được: {len(danh_sach_hinh)} file")
+            print("="*40)
+            
+            if danh_sach_hinh:
+                # A. Lấy tấm đầu tiên làm ảnh đại diện (Hiển thị ngoài danh sách)
+                new_pa.hinh_anh = danh_sach_hinh[0]
+                new_pa.save() # Cập nhật lại ảnh đại diện
+                print("✅ 1. Đã lưu Ảnh đại diện.")
+                
+                # B. Lưu các tấm còn lại vào Kho ảnh phụ (HinhAnhPhanAnh)
+                # Dùng [1:] để bỏ qua tấm đầu tiên đã lưu ở trên, tránh bị trùng lặp
+                dem_anh_phu = 0
+                for file_anh in danh_sach_hinh[1:]:
+                    HinhAnhPhanAnh.objects.create(
+                        phan_anh=new_pa, 
+                        hinh_anh=file_anh
+                    )
+                    dem_anh_phu += 1
+                
+                print(f"✅ 2. Đã lưu thêm {dem_anh_phu} ảnh vào kho phụ.")
+                print("="*40 + "\n")
+
             return JsonResponse({'success': True, 'message': 'Gửi phản ánh thành công!'})
+        
         except Exception as e:
+            # In lỗi chi tiết ra màn hình Terminal nếu có sự cố ngầm
+            print(f"❌ LỖI HỆ THỐNG: {str(e)}")
             return JsonResponse({'success': False, 'message': str(e)})
 
     return JsonResponse({'success': False, 'message': 'Yêu cầu không hợp lệ!'})
@@ -182,12 +220,10 @@ def profile(request):
 
 @login_required
 def chi_tiet_ho_so(request, id_ho_so):
-    # Lấy hồ sơ theo ID, nếu không thấy thì báo lỗi 404
-    ho_so = get_object_or_404(PhanAnh, id=id_ho_so)
+    # Lấy hồ sơ kèm theo toàn bộ ảnh trong kho phụ 'danh_sach_anh'
+    ho_so = get_object_or_404(PhanAnh.objects.prefetch_related('danh_sach_anh'), id=id_ho_so)
     
-    # Bảo mật: Chỉ cho xem nếu là chủ sở hữu (hoặc Admin sau này)
-    # Nếu không phải chủ -> Báo lỗi hoặc đá về trang chủ (Ở đây mình tạm bỏ qua để test cho dễ)
-    
+    # Ở đây ông dùng tên file là 'maps/detail.html'
     return render(request, 'maps/detail.html', {'ho_so': ho_so})
 
 
@@ -420,3 +456,46 @@ def api_quet_vung_postgis(request):
         })
 
     return JsonResponse({'tam_diem': {'lat': lat, 'lng': lng}, 'tong_so': len(data), 'du_lieu': data})
+
+@staff_member_required(login_url='login')
+def tra_loi_ho_tro(request, id):
+    # 1. Tìm cái yêu cầu hỗ trợ theo ID
+    ht = get_object_or_404(HoTro, id=id)
+
+    if request.method == 'POST':
+        # 2. Lấy nội dung Admin nhập từ form
+        noidung_admin_tra_loi = request.POST.get('noidung_phan_hoi')
+
+        # 3. GÓI GHÉM VÀ GỬI EMAIL BẰNG MAILTRAP
+        tieu_de = f"[Urban Manager] Phản hồi yêu cầu hỗ trợ #{ht.id}"
+        loi_nhan = f"""Chào {ht.ho_ten},
+
+Chúng tôi đã nhận được yêu cầu của bạn về vấn đề: {ht.get_chu_de_display()}.
+Nội dung bạn gửi: "{ht.noi_dung}"
+
+PHẢN HỒI TỪ BAN QUẢN TRỊ:
+{noidung_admin_tra_loi}
+
+Trân trọng,
+Đội ngũ Urban Manager.
+"""
+        # Bấm nút gửi!
+        send_mail(
+            subject=tieu_de,
+            message=loi_nhan,
+            from_email='admin@urbanmanager.com', 
+            recipient_list=[ht.email], 
+            fail_silently=False,
+        )
+
+        # 4. Cập nhật lại Database
+        ht.da_xu_ly = True
+        ht.phan_hoi_admin = noidung_admin_tra_loi
+        ht.save()
+
+        # Báo cáo thành công và quay về trang quản lý của ông (tên là trang_quan_ly)
+        messages.success(request, f'Đã gửi email trả lời cho {ht.ho_ten} thành công!')
+        return redirect('trang_quan_ly') 
+
+    # Nếu chưa bấm gửi thì gọi cái giao diện soạn thư ra
+    return render(request, 'maps/tra_loi_ho_tro.html', {'ht': ht})
