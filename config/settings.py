@@ -80,7 +80,7 @@ DATABASES = {
         
         'NAME': 'duangismoi',       
         'USER': 'postgres',        
-        'PASSWORD': '123',
+        'PASSWORD': '281105',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -136,8 +136,8 @@ EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
 EMAIL_PORT = 2525
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
-EMAIL_HOST_USER = '672cfc39694b8f' # Đây là Username của ông
-EMAIL_HOST_PASSWORD = 'ead7c6606f6186'
+EMAIL_HOST_USER = '005c06c70acc9b' # Đây là Username
+EMAIL_HOST_PASSWORD = '61a64315d4bd9a'
 
 import os
 
