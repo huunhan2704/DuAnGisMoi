@@ -68,4 +68,6 @@ urlpatterns = [
     # 17. Thùng rác
     path('khoi-phuc/<int:id>/', views.khoi_phuc_phan_anh, name='khoi_phuc_phan_anh'),
     path('xoa-vinh-vien/<int:id>/', views.xoa_vinh_vien_phan_anh, name='xoa_vinh_vien'),
+    # 18.Thêm user
+    path('them-user/', views.them_user, name='them_user'),
 ]

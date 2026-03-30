@@ -1,6 +1,7 @@
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
+from django.db.models import Q
 from .models import PhanAnh
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
@@ -59,6 +60,18 @@ def trang_quan_ly(request):
     paginator_ht = Paginator(ht_list, 15)
     page_ht = request.GET.get('page_ht')
     ds_ho_tro = paginator_ht.get_page(page_ht)
+    # Lọc tài khoản (quản lý tài khoản)
+    filter_role = request.GET.get('filter_role', '')
+    ds_user = User.objects.all().order_by('-id')
+
+    if filter_role == 'admin':
+        ds_user = ds_user.filter(is_superuser=True)
+    elif filter_role == 'staff':
+        # Nhân viên là người có is_staff=True nhưng is_superuser=False
+        ds_user = ds_user.filter(is_staff=True, is_superuser=False)
+    elif filter_role == 'user':
+        # Người dùng thường là cả 2 cái đều False
+        ds_user = ds_user.filter(is_staff=False, is_superuser=False)
 
     # Thùng rác (Thường không cần phân trang nếu ít, nhưng nếu cần bạn làm tương tự)
     ds_thung_rac = PhanAnh.objects.filter(da_xoa=True).order_by('-ngay_xoa')
@@ -66,10 +79,11 @@ def trang_quan_ly(request):
     context = {
         'ds_phan_anh': ds_phan_anh,
         'ds_ho_tro': ds_ho_tro,
-        'ds_user': us_list, # Giữ nguyên hoặc phân trang tương tự
+        'ds_user': ds_user, # Giữ nguyên hoặc phân trang tương tự
         'ds_thung_rac': ds_thung_rac,
         'tat_ca_tieu_de': tat_ca_tieu_de,
         'tieu_de_da_chon': tieu_de_da_chon,
+        'filter_role': filter_role,
     }
     return render(request, 'maps/quan_ly.html', context)
 
@@ -122,7 +136,51 @@ def xoa_vinh_vien_phan_anh(request, id):
     messages.warning(request, "🗑️ Đã xóa vĩnh viễn dữ liệu.")
     # Sửa từ 'quan_ly' thành 'trang_quan_ly'
     return redirect('trang_quan_ly')
+@staff_member_required(login_url='login')
+def them_user(request):
+    # CHỈ SUPERUSER MỚI CÓ QUYỀN VÀO ĐÂY
+    if not request.user.is_superuser:
+        messages.error(request, "⚠️ Chỉ Admin Tổng mới có quyền thêm tài khoản!")
+        return redirect('trang_quan_ly')
 
+    if request.method == 'POST':
+        # Lấy dữ liệu từ form gửi lên
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        role = request.POST.get('role')
+
+        # 1. Kiểm tra xem tên đăng nhập đã tồn tại chưa
+        if User.objects.filter(username=username).exists():
+            messages.error(request, f"⚠️ Tên đăng nhập '{username}' đã có người sử dụng!")
+            return redirect('trang_quan_ly')
+
+        try:
+            # 2. Tạo User mới (Dùng create_user để Django tự động mã hóa mật khẩu)
+            new_user = User.objects.create_user(username=username, email=email, password=password)
+
+            # 3. Phân quyền dựa trên lựa chọn
+            if role == 'admin':
+                new_user.is_staff = True
+                new_user.is_superuser = True
+                ten_quyen = "Admin Tổng"
+            elif role == 'staff':
+                new_user.is_staff = True
+                new_user.is_superuser = False
+                ten_quyen = "Nhân viên"
+            else: # user thường
+                new_user.is_staff = False
+                new_user.is_superuser = False
+                ten_quyen = "Người dùng thường"
+            
+            # Lưu các thay đổi về quyền
+            new_user.save()
+            
+            messages.success(request, f"✅ Đã tạo thành công tài khoản '{username}' với quyền {ten_quyen}!")
+        except Exception as e:
+            messages.error(request, f"❌ Đã xảy ra lỗi: {str(e)}")
+
+    return redirect('trang_quan_ly')
 @staff_member_required(login_url='login')
 def khoa_user(request, id):
     if not request.user.is_superuser:

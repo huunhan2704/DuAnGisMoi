@@ -11,11 +11,7 @@ class PhanAnh(models.Model):
     
     # 2. Mô tả
     mo_ta = models.TextField(verbose_name="Mô tả chi tiết")
-    
-
-    # ===> THÊM MỚI CỘT ĐỊA CHỈ TẠI ĐÂY <===
     dia_chi = models.CharField(max_length=255, blank=True, null=True, verbose_name="Địa chỉ/Tên đường")
-    
     # 3. Tọa độ
     du_lieu_toa_do = models.TextField(verbose_name="Danh sách tọa độ")
     

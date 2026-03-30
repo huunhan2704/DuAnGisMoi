@@ -23,11 +23,13 @@
                         <i class="fa-solid fa-map-location-dot me-1"></i> Phản Ánh Sự Cố
                     </a>
                 </li>
+                
                 <li class="nav-item" role="presentation">
                     <a class="nav-link" data-bs-toggle="tab" href="#ho-tro" role="tab" aria-selected="false">
                         <i class="fa-solid fa-headset me-1"></i> Yêu Cầu Hỗ Trợ
                     </a>
                 </li>
+                
                 {% if user.is_superuser %}
                 <li class="nav-item" role="presentation">
                     <a class="nav-link" data-bs-toggle="tab" href="#tai-khoan" role="tab" aria-selected="false">
@@ -35,11 +37,13 @@
                     </a>
                 </li>
                 {% endif %}
+                
                 <li class="nav-item" role="presentation">
                     <a class="nav-link" data-bs-toggle="tab" href="#lich-su" role="tab" aria-selected="false">
                         <i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch Sử
                     </a>
                 </li>
+                
                 <li class="nav-item" role="presentation">
                     <a class="nav-link text-warning fw-bold" data-bs-toggle="tab" href="#thung-rac" role="tab" aria-selected="false">
                         <i class="fa-solid fa-trash-can me-1"></i> Thùng Rác
@@ -81,39 +85,41 @@
 
         <div class="tab-pane fade show active" id="phan-anh" role="tabpanel">
             <h4 class="mb-3 text-primary"><i class="fa-solid fa-map-location-dot"></i> Danh sách Phản Ánh Sự Cố</h4>
+            
             <div class="card shadow-sm mb-3 border-primary">
-    <div class="card-body py-2">
-        <form method="GET" action="" id="filterForm">
-            {% if request.GET.focus_id %}
-                <input type="hidden" name="focus_id" value="{{ request.GET.focus_id }}">
-            {% endif %}
+                <div class="card-body py-2">
+                    <form method="GET" action="" id="filterForm">
+                        {% if request.GET.focus_id %}
+                            <input type="hidden" name="focus_id" value="{{ request.GET.focus_id }}">
+                        {% endif %}
 
-            <div class="row align-items-center">
-                <div class="col-md-10">
-                    <label class="fw-bold small mb-1 text-muted">Lọc theo loại sự cố:</label>
-                    <div class="d-flex flex-wrap gap-3">
-                        {% for tieu_de in tat_ca_tieu_de %}
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="filter_tieu_de" 
-                                   value="{{ tieu_de }}" id="check_{{ forloop.counter }}"
-                                   {% if tieu_de in tieu_de_da_chon %}checked{% endif %}
-                                   onchange="this.form.submit()">
-                            <label class="form-check-label small" for="check_{{ forloop.counter }}">
-                                {{ tieu_de }}
-                            </label>
+                        <div class="row align-items-center">
+                            <div class="col-md-10">
+                                <label class="fw-bold small mb-1 text-muted">Lọc theo loại sự cố:</label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    {% for tieu_de in tat_ca_tieu_de %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="filter_tieu_de" 
+                                               value="{{ tieu_de }}" id="check_{{ forloop.counter }}"
+                                               {% if tieu_de in tieu_de_da_chon %}checked{% endif %}
+                                               onchange="this.form.submit()">
+                                        <label class="form-check-label small" for="check_{{ forloop.counter }}">
+                                            {{ tieu_de }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <a href="{% url 'trang_quan_ly' %}" class="btn btn-outline-secondary btn-sm shadow-sm">
+                                    <i class="fa-solid fa-rotate-left"></i> Xóa lọc
+                                </a>
+                            </div>
                         </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="col-md-2 text-end">
-                    <a href="{% url 'trang_quan_ly' %}" class="btn btn-outline-secondary btn-sm shadow-sm">
-                        <i class="fa-solid fa-rotate-left"></i> Xóa lọc
-                    </a>
+                    </form>
                 </div>
             </div>
-        </form>
-    </div>
-</div>
+            
             <div class="card shadow-sm mb-5">
                 <div class="card-body overflow-auto">
                     <table class="table table-hover align-middle">
@@ -136,12 +142,11 @@
                                 <td>#{{ item.id }}</td>
                                 <td>{{ item.nguoi_gui.username|default:"Khách vãng lai" }}</td>
                                 <td class="fw-bold">{{ item.tieu_de }}</td>
-                                <td>{{ item.dia_chi|default:"Chưa cập nhật địa chỉ" }}</td>
-                                
+                               <td style="max-width: 250px;" class="text-wrap text-break">{{ item.dia_chi|default:"Chưa cập nhật địa chỉ" }}</td>
+                
                                 <td class="text-center align-middle">
                                     {% if item.hinh_anh %}
                                         <div class="position-relative d-inline-block">
-                                            
                                             <button type="button" class="btn p-0 border-0"
                                                     onclick="moGallery([
                                                         '{{ item.hinh_anh.url }}'
@@ -158,7 +163,6 @@
                                                 +{{ item.danh_sach_anh.count }}
                                             </span>
                                             {% endif %}
-
                                         </div>
                                     {% else %}
                                         <span class="text-muted small"><i class="fa-solid fa-image-slash"></i> Không có ảnh</span>
@@ -179,7 +183,6 @@
                                     <a href="{% url 'duyet_phan_anh' item.id %}" class="btn btn-success btn-sm" title="Duyệt / Cập nhật">
                                         <i class="fa-solid fa-check"></i>
                                     </a>
-                                    
                                     <a href="{% url 'xoa_phan_anh' item.id %}" class="btn btn-danger btn-sm" title="Xóa" onclick="return confirm('Ngài có chắc chắn muốn xóa phản ánh này không? Xóa là mất luôn đó nha!');">
                                         <i class="fa-solid fa-trash"></i>
                                     </a>
@@ -191,29 +194,30 @@
                             {% endfor %}
                         </tbody>
                     </table>
-                   <nav class="mt-3">
-    <ul class="pagination pagination-sm justify-content-center">
-        {% if ds_phan_anh.has_previous %}
-            <li class="page-item">
-                <a class="page-link" href="?page_pa=1{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">&laquo; Đầu</a>
-            </li>
-            <li class="page-item">
-                <a class="page-link" href="?page_pa={{ ds_phan_anh.previous_page_number }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Trước</a>
-            </li>
-        {% endif %}
+                    
+                    <nav class="mt-3">
+                        <ul class="pagination pagination-sm justify-content-center">
+                            {% if ds_phan_anh.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page_pa=1{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">&laquo; Đầu</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page_pa={{ ds_phan_anh.previous_page_number }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Trước</a>
+                                </li>
+                            {% endif %}
 
-        <li class="page-item disabled"><span class="page-link text-dark">Trang {{ ds_phan_anh.number }} / {{ ds_phan_anh.paginator.num_pages }}</span></li>
+                            <li class="page-item disabled"><span class="page-link text-dark">Trang {{ ds_phan_anh.number }} / {{ ds_phan_anh.paginator.num_pages }}</span></li>
 
-        {% if ds_phan_anh.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="?page_pa={{ ds_phan_anh.next_page_number }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Sau</a>
-            </li>
-            <li class="page-item">
-                <a class="page-link" href="?page_pa={{ ds_phan_anh.paginator.num_pages }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Cuối &raquo;</a>
-            </li>
-        {% endif %}
-    </ul>
-</nav>
+                            {% if ds_phan_anh.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page_pa={{ ds_phan_anh.next_page_number }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Sau</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page_pa={{ ds_phan_anh.paginator.num_pages }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Cuối &raquo;</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -247,7 +251,6 @@
                                         <span class="badge bg-danger">Chờ phản hồi</span>
                                     {% endif %}
                                 </td>
-                                
                                 <td>
                                     {% if ht.da_xu_ly %}
                                         <button class="btn btn-secondary btn-sm" disabled><i class="fa-solid fa-check-double"></i> Đã phản hồi</button>
@@ -255,12 +258,13 @@
                                         <a href="{% url 'tra_loi_ho_tro' ht.id %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-reply"></i> Trả lời</a>
                                     {% endif %}
                                 </td>
-                                </tr>
+                            </tr>
                             {% empty %}
                             <tr><td colspan="6" class="text-center text-muted">Chưa có yêu cầu hỗ trợ nào.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                    
                     <nav class="mt-3">
                         <ul class="pagination pagination-sm justify-content-center">
                             {% if ds_ho_tro.has_previous %}
@@ -281,9 +285,37 @@
                 </div>
             </div>
         </div>
+
         {% if user.is_superuser %}
         <div class="tab-pane fade" id="tai-khoan" role="tabpanel">
-            <h4 class="mb-3 text-success"><i class="fa-solid fa-users"></i> Danh sách Tài khoản Người dùng</h4>
+            
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-success m-0"><i class="fa-solid fa-users"></i> Danh sách Tài khoản Người dùng</h4>
+                <button type="button" class="btn btn-success btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalThemUser">
+                    <i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản
+                </button>
+            </div>
+
+            <div class="card shadow-sm mb-3 border-success">
+                <div class="card-body py-2">
+                    <form method="GET" action="" id="filterRoleForm">
+                        <div class="row align-items-center">
+                            <div class="col-md-auto">
+                                <label class="fw-bold small mb-0 text-muted">Lọc theo quyền hạn:</label>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm border-success" name="filter_role" onchange="this.form.submit()">
+                                    <option value="" {% if not filter_role %}selected{% endif %}>🌍 Tất cả tài khoản</option>
+                                    <option value="admin" {% if filter_role == 'admin' %}selected{% endif %}>👑 Admin Tổng</option>
+                                    <option value="staff" {% if filter_role == 'staff' %}selected{% endif %}>🛠️ Nhân viên</option>
+                                    <option value="user" {% if filter_role == 'user' %}selected{% endif %}>👤 Người dùng thường</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div class="card shadow-sm mb-5">
                 <div class="card-body overflow-auto">
                     <table class="table table-hover align-middle">
@@ -320,18 +352,17 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                {% if u.is_superuser %}
-                                    <span class="badge bg-light text-muted border"><i class="fa-solid fa-shield"></i> Quyền tối cao</span>
-                                {% else %}
-                                    <a href="{% url 'khoa_user' u.id %}" class="btn btn-warning btn-sm" title="Khóa / Mở khóa">
-                                        <i class="fa-solid fa-lock"></i>
-                                    </a>
-                                    
-                                    <a href="{% url 'xoa_user' u.id %}" class="btn btn-danger btn-sm" title="Xóa tài khoản" onclick="return confirm('Chắc chắn muốn xóa vĩnh viễn User này không?');">
-                                        <i class="fa-solid fa-user-xmark"></i>
-                                    </a>
-                                {% endif %}
-                            </td>
+                                    {% if u.is_superuser %}
+                                        <span class="badge bg-light text-muted border"><i class="fa-solid fa-shield"></i> Quyền tối cao</span>
+                                    {% else %}
+                                        <a href="{% url 'khoa_user' u.id %}" class="btn btn-warning btn-sm" title="Khóa / Mở khóa">
+                                            <i class="fa-solid fa-lock"></i>
+                                        </a>
+                                        <a href="{% url 'xoa_user' u.id %}" class="btn btn-danger btn-sm" title="Xóa tài khoản" onclick="return confirm('Chắc chắn muốn xóa vĩnh viễn User này không?');">
+                                            <i class="fa-solid fa-user-xmark"></i>
+                                        </a>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% empty %}
                             <tr><td colspan="6" class="text-center text-muted">Chưa có người dùng nào.</td></tr>
@@ -340,6 +371,7 @@
                     </table>
                 </div>
             </div>
+            
         </div>
         {% endif %}
 
@@ -398,6 +430,7 @@
                 </div>
             </div>
         </div>
+
         <div class="tab-pane fade" id="thung-rac" role="tabpanel">
             <h4 class="mb-3 text-warning"><i class="fa-solid fa-trash-can"></i> Thùng Rác (Tự động xóa sau 7 ngày)</h4>
             <div class="card shadow-sm mb-5 border-warning">
@@ -423,7 +456,6 @@
                                     <a href="{% url 'khoi_phuc_phan_anh' item.id %}" class="btn btn-success btn-sm" title="Khôi phục lại">
                                         <i class="fa-solid fa-trash-arrow-up"></i> Khôi phục
                                     </a>
-                                    
                                     <a href="{% url 'xoa_vinh_vien' item.id %}" class="btn btn-dark btn-sm" title="Xóa vĩnh viễn ngay lập tức" onclick="return confirm('Hành động này không thể hoàn tác. Chắc chắn xóa?');">
                                         <i class="fa-solid fa-radiation"></i> Xóa sạch
                                     </a>
@@ -437,10 +469,8 @@
                 </div>
             </div>
         </div>
-    </div> 
-</div> 
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </div> </div> <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
@@ -506,5 +536,73 @@
         }, { once: true });
     }
 </script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let targetTabId = null;
+
+        // 1. Đang thao tác bên Tab Tài khoản (Lọc quyền)
+        if (urlParams.has('filter_role')) {
+            targetTabId = '#tai-khoan';
+        } 
+        // 2. Đang thao tác bên Tab Hỗ trợ (Bấm chuyển trang)
+        else if (urlParams.has('page_ht')) {
+            targetTabId = '#ho-tro';
+        } 
+        // 3. Đang thao tác bên Tab Phản ánh
+        else if (urlParams.has('page_pa') || urlParams.has('filter_tieu_de') || urlParams.has('focus_id')) {
+            targetTabId = '#phan-anh';
+        }
+
+        // Nếu xác định được vị trí, ra lệnh cho Bootstrap tự động mở Tab đó lên
+        if (targetTabId) {
+            let tabTriggerEl = document.querySelector('a[href="' + targetTabId + '"]');
+            if (tabTriggerEl) {
+                // Khởi tạo và kích hoạt Tab
+                let tabInstance = new bootstrap.Tab(tabTriggerEl);
+                tabInstance.show();
+            }
+        }
+    });
+</script>
+<div class="modal fade" id="modalThemUser" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form method="POST" action="{% url 'them_user' %}">
+                {% csrf_token %}
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus"></i> Cấp tài khoản mới</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">Tên đăng nhập (Username) <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="username" required placeholder="Nhập tên viết liền không dấu">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">Địa chỉ Email</label>
+                        <input type="email" class="form-control" name="email" placeholder="example@gmail.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">Mật khẩu <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="password" required placeholder="Nhập mật khẩu cấp phát">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">Cấp bậc / Phân quyền <span class="text-danger">*</span></label>
+                        <select class="form-select border-success" name="role" required>
+                            <option value="user" selected>👤 Người dùng thường (Chỉ gửi & xem phản ánh)</option>
+                            <option value="staff">🛠️ Nhân viên (Duyệt bài, xử lý sự cố)</option>
+                            <option value="admin">👑 Admin Tổng (Toàn quyền hệ thống)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-success btn-sm"><i class="fa-solid fa-check"></i> Xác nhận tạo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 </body>
 </html>
