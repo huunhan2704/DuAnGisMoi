@@ -97,7 +97,13 @@ LOGIN_URL = 'login'
 
 # --- CẤU HÌNH GIS QUAN TRỌNG ---
 # Chỉ chạy đường dẫn thủ công nếu bạn đang ở máy Windows (nt)
+# --- CẤU HÌNH GIS QUAN TRỌNG ---
 if os.name == 'nt':
+    # Đường dẫn dành cho máy Windows của bạn (Giữ nguyên)
     GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgdal-35.dll'
     GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgeos_c.dll'
-# Trên Railway (Linux), Django sẽ tự tìm GDAL nhờ biến NIXPACKS_PKGS đã cài.
+else:
+    # Cấu hình linh hoạt cho Railway (Linux)
+    # Nó sẽ ưu tiên tìm biến môi trường, nếu không thấy mới dùng đường dẫn mặc định của Linux
+    GDAL_LIBRARY_PATH = os.environ.get('GDAL_LIBRARY_PATH', '/usr/lib/libgdal.so')
+    GEOS_LIBRARY_PATH = os.environ.get('GEOS_LIBRARY_PATH', '/usr/lib/libgeos_c.so')
