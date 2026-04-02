@@ -138,7 +138,7 @@ LOGIN_URL = 'login'
 import os
 
 # Cấu hình đường dẫn thư viện cho GeoDjango
-if os.name == 'nt':
+##if os.name == 'nt':
     # Đường dẫn lấy từ máy (PostgreSQL 18)
-    GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgdal-35.dll'
-    GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgeos_c.dll'
+  ##  GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgdal-35.dll'
+    ## GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgeos_c.dll'
