@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-309y67@cg_83uuyclkc6(5z_%q4mgq6@@w%yp)!@20r*rt&x)x
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['du-an-gis-moi.vercel.app', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
