@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-309y67@cg_83uuyclkc6(5z_%q4mgq6@@w%yp)!@20r*rt&x)x
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['du-an-gis-moi.vercel.app', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'maps',
+    'django.contrib.gis',
 ]
 
 MIDDLEWARE = [
@@ -80,7 +81,7 @@ DATABASES = {
         
         'NAME': 'duangismoi',       
         'USER': 'postgres',        
-        'PASSWORD': '281105',
+        'PASSWORD': '1',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -139,5 +140,5 @@ import os
 # Cấu hình đường dẫn thư viện cho GeoDjango
 if os.name == 'nt':
     # Đường dẫn lấy từ máy (PostgreSQL 18)
-    GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\18\bin\libgdal-35.dll'
-    GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\18\bin\libgeos_c.dll'
+    GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgdal-35.dll'
+    GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgeos_c.dll'

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh bạ Khẩn cấp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-primary mb-4 shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'home' %}">
+                <i class="fas fa-city me-2"></i>URBAN MANAGER
+            </a>
+            <a href="{% url 'home' %}" class="btn btn-outline-light btn-sm">
+                <i class="fas fa-home me-1"></i> Trang chủ
+            </a>
+        </div>
+    </nav>
+
+
+    <div class="container mb-5">
+        <h2 class="text-center text-primary fw-bold mb-4"><i class="fa-solid fa-phone-volume me-2"></i>DANH BẠ KHẨN CẤP</h2>
+        <p class="text-center text-muted mb-5">Danh sách các đơn vị tiếp nhận xử lý sự cố hạ tầng đô thị 24/7. Người dân vui lòng liên hệ đúng bộ phận để được hỗ trợ nhanh nhất.</p>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm border-top border-5 border-danger">
+                    <div class="card-body text-center">
+                        <div class="rounded-circle bg-danger text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; font-size: 24px;">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">An ninh & Cứu nạn</h5>
+                        <p class="card-text small text-muted">Xử lý tai nạn giao thông nghiêm trọng, cháy nổ, gây rối trật tự công cộng.</p>
+                        <div class="d-grid gap-2">
+                            <a href="tel:113" class="btn btn-danger fw-bold"><i class="fa-solid fa-phone me-2"></i>113 (Cảnh sát)</a>
+                            <a href="tel:114" class="btn btn-danger fw-bold"><i class="fa-solid fa-fire-extinguisher me-2"></i>114 (Cứu hỏa)</a>
+                            <a href="tel:115" class="btn btn-danger fw-bold"><i class="fa-solid fa-truck-medical me-2"></i>115 (Cấp cứu)</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm border-top border-5 border-warning">
+                    <div class="card-body text-center">
+                        <div class="rounded-circle bg-warning text-dark d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; font-size: 24px;">
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Điện lực (EVN)</h5>
+                        <p class="card-text small text-muted">Báo cáo sự cố mất điện, đứt dây điện, trụ điện ngã đổ, an toàn lưới điện.</p>
+                        <hr>
+                        <a href="tel:19001006" class="btn btn-warning w-100 fw-bold mb-2"><i class="fa-solid fa-phone me-2"></i>1900 1006</a>
+                        <a href="https://cskh.evnhcmc.vn/" target="_blank" class="btn btn-outline-warning text-dark w-100 btn-sm">🌐 Website EVN</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm border-top border-5 border-info">
+                    <div class="card-body text-center">
+                        <div class="rounded-circle bg-info text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; font-size: 24px;">
+                            <i class="fa-solid fa-faucet-drip"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Cấp thoát nước</h5>
+                        <p class="card-text small text-muted">Báo cáo vỡ ống nước, mất nước sinh hoạt, ngập úng cục bộ, mất nắp cống.</p>
+                        <hr>
+                        <a href="tel:19001234" class="btn btn-info text-white w-100 fw-bold mb-2"><i class="fa-solid fa-phone me-2"></i>1900 1234</a>
+                        <a href="https://sawaco.com.vn/" target="_blank" rel="noreferrer noopener" class="btn btn-outline-info w-100 btn-sm">🌐 Sawaco HCM</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm border-top border-5 border-success">
+                    <div class="card-body text-center">
+                        <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; font-size: 24px;">
+                            <i class="fa-solid fa-tree"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Công viên Cây xanh</h5>
+                        <p class="card-text small text-muted">Xử lý cây xanh ngã đổ chắn đường, nhánh cây gãy nguy hiểm mùa mưa bão.</p>
+                        <hr>
+                        <a href="tel:02839351351" class="btn btn-success w-100 fw-bold mb-2"><i class="fa-solid fa-phone me-2"></i>028 3935 1351</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm border-top border-5 border-dark">
+                    <div class="card-body text-center">
+                        <div class="rounded-circle bg-dark text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; font-size: 24px;">
+                            <i class="fa-solid fa-lightbulb"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Chiếu sáng Đô thị</h5>
+                        <p class="card-text small text-muted">Báo cáo đèn đường không sáng, trụ đèn rò rỉ điện, hệ thống chiếu sáng công cộng.</p>
+                        <hr>
+                        <a href="tel:19001024" class="btn btn-dark w-100 fw-bold mb-2"><i class="fa-solid fa-phone me-2"></i>1900 1024</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm border-top border-5 border-secondary">
+                    <div class="card-body text-center">
+                        <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; font-size: 24px;">
+                            <i class="fa-solid fa-road"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Hạ tầng Giao thông</h5>
+                        <p class="card-text small text-muted">Báo cáo ổ gà lớn gây nguy hiểm, biển báo giao thông bị gãy đổ, hư hỏng.</p>
+                        <hr>
+                        <a href="tel:1022" class="btn btn-secondary w-100 fw-bold mb-2"><i class="fa-solid fa-phone me-2"></i>Tổng đài 1022</a>
+                        <a href="https://1022.tphcm.gov.vn/" target="_blank" class="btn btn-outline-secondary w-100 btn-sm">🌐 Cổng 1022</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
