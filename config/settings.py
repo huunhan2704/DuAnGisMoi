@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import dj_database_url
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +28,8 @@ SECRET_KEY = 'django-insecure-309y67@cg_83uuyclkc6(5z_%q4mgq6@@w%yp)!@20r*rt&x)x
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
+# Thêm dòng này để bảo mật Form khi chạy online
+CSRF_TRUSTED_ORIGINS = ['https://*.railway.app']
 
 # Application definition
 
@@ -75,16 +78,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        # Quan trọng: Dùng engine postgis để hỗ trợ bản đồ
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        
-        'NAME': 'duangismoi',       
-        'USER': 'postgres',        
-        'PASSWORD': '1',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        # Railway sẽ tự động cung cấp biến môi trường DATABASE_URL
+        default=os.environ.get('DATABASE_URL'),
+        # Bắt buộc dùng engine postgis cho dự án GIS
+        engine='django.contrib.gis.db.backends.postgis',
+        conn_max_age=600,
+    )
 }
 
 

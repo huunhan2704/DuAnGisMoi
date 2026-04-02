@@ -1,8 +1,11 @@
 asgiref==3.11.0
 beautifulsoup4==4.14.3
+dj-database-url==3.1.2
 Django==5.2.10
 feedparser==6.0.12
+gunicorn==25.3.0
 lxml==6.0.2
+packaging==26.0
 pillow==12.1.0
 psycopg2-binary==2.9.11
 sgmllib3k==1.0.0
