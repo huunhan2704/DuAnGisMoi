@@ -95,18 +95,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 LOGIN_URL = 'login'
 
+# Thêm import này ở đầu file hoặc ngay đây cũng được
+import shutil
+
 # --- CẤU HÌNH GIS QUAN TRỌNG ---
-# Chỉ chạy đường dẫn thủ công nếu bạn đang ở máy Windows (nt)
-# --- CẤU HÌNH GIS QUAN TRỌNG ---
-# --- CẤU HÌNH GIS QUAN TRỌNG ---
-# Lấy đường dẫn từ biến môi trường (Ưu tiên cho Railway)
 GDAL_LIBRARY_PATH = os.environ.get('GDAL_LIBRARY_PATH')
 GEOS_LIBRARY_PATH = os.environ.get('GEOS_LIBRARY_PATH')
 
-# Nếu không chạy trên server (tức là đang ở máy Windows của bạn)
-if not GDAL_LIBRARY_PATH and os.name == 'nt':
+# Nếu không chạy trên server (máy Windows của bạn)
+if os.name == 'nt':
     GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgdal-35.dll'
     GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgeos_c.dll'
+# Nếu đang ở trên Railway (Linux)
+else:
+    # Nếu biến môi trường bị trống, thử tự tìm đường dẫn trong hệ thống Linux
+    if not GDAL_LIBRARY_PATH:
+        GDAL_LIBRARY_PATH = shutil.which('gdal') or '/usr/lib/x86_64-linux-gnu/libgdal.so'
+    if not GEOS_LIBRARY_PATH:
+        GEOS_LIBRARY_PATH = '/usr/lib/x86_64-linux-gnu/libgeos_c.so'
 
-# Dòng này giúp bạn debug trong Logs xem Django đang chọn đường dẫn nào
 print(f"DEBUG: GDAL_PATH is {GDAL_LIBRARY_PATH}")
