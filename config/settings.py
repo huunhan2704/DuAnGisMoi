@@ -96,20 +96,14 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 LOGIN_URL = 'login'
 
 # Thêm import này ở đầu file hoặc ngay đây cũng được
+# --- CẤU HÌNH GIS RÚT GỌN ---
 import os
-import ctypes.util
-from pathlib import Path
 
-# --- CẤU HÌNH GIS CHỐT HẠ ---
-if os.name == 'nt':
-    # Dành cho máy Windows của bạn
+if os.name == 'nt': # Máy Windows của bạn
     GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgdal-35.dll'
     GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgeos_c.dll'
 else:
-    # Dành cho Railway (Linux) - Tự động tìm kiếm vị trí thư viện
-    GDAL_LIBRARY_PATH = ctypes.util.find_library('gdal')
-    GEOS_LIBRARY_PATH = ctypes.util.find_library('geos_c')
-
-# Dòng này để bạn nhìn thấy kết quả tìm kiếm trong Logs
-print(f"DEBUG: Tự động tìm thấy GDAL tại: {GDAL_LIBRARY_PATH}")
-print(f"DEBUG: Tự động tìm thấy GEOS tại: {GEOS_LIBRARY_PATH}")
+    # Trên Railway, KHÔNG khai báo đường dẫn cứng nữa. 
+    # Nếu bạn đã cài libgdal-dev ở Bước 1, Django sẽ tự tìm thấy.
+    # Chỉ cần xóa hoặc comment 2 dòng GDAL_LIBRARY_PATH và GEOS_LIBRARY_PATH đi là được.
+    pass
