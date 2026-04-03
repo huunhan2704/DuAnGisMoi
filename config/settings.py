@@ -96,22 +96,20 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 LOGIN_URL = 'login'
 
 # Thêm import này ở đầu file hoặc ngay đây cũng được
-import shutil
+import os
+import ctypes.util
+from pathlib import Path
 
-# --- CẤU HÌNH GIS QUAN TRỌNG ---
-GDAL_LIBRARY_PATH = os.environ.get('GDAL_LIBRARY_PATH')
-GEOS_LIBRARY_PATH = os.environ.get('GEOS_LIBRARY_PATH')
-
-# Nếu không chạy trên server (máy Windows của bạn)
+# --- CẤU HÌNH GIS CHỐT HẠ ---
 if os.name == 'nt':
+    # Dành cho máy Windows của bạn
     GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgdal-35.dll'
     GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgeos_c.dll'
-# Nếu đang ở trên Railway (Linux)
 else:
-    # Nếu biến môi trường bị trống, thử tự tìm đường dẫn trong hệ thống Linux
-    if not GDAL_LIBRARY_PATH:
-        GDAL_LIBRARY_PATH = shutil.which('gdal') or '/usr/lib/x86_64-linux-gnu/libgdal.so'
-    if not GEOS_LIBRARY_PATH:
-        GEOS_LIBRARY_PATH = '/usr/lib/x86_64-linux-gnu/libgeos_c.so'
+    # Dành cho Railway (Linux) - Tự động tìm kiếm vị trí thư viện
+    GDAL_LIBRARY_PATH = ctypes.util.find_library('gdal')
+    GEOS_LIBRARY_PATH = ctypes.util.find_library('geos_c')
 
-print(f"DEBUG: GDAL_PATH is {GDAL_LIBRARY_PATH}")
+# Dòng này để bạn nhìn thấy kết quả tìm kiếm trong Logs
+print(f"DEBUG: Tự động tìm thấy GDAL tại: {GDAL_LIBRARY_PATH}")
+print(f"DEBUG: Tự động tìm thấy GEOS tại: {GEOS_LIBRARY_PATH}")
