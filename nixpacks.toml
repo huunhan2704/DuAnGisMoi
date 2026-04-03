@@ -1,0 +1,7 @@
+[build]
+pkgs = ["gdal", "geos", "proj", "binutils"]
+
+[build.env]
+GDAL_LIBRARY_PATH = "/nix/store/*/lib/libgdal.so"
+GEOS_LIBRARY_PATH = "/nix/store/*/lib/libgeos_c.so"
+LD_LIBRARY_PATH = "/nix/store/*/lib"
