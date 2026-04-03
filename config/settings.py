@@ -99,11 +99,13 @@ LOGIN_URL = 'login'
 # --- CẤU HÌNH GIS RÚT GỌN ---
 # --- CẤU HÌNH GIS CHỐT HẠ ---
 # --- CẤU HÌNH GIS CHỐT HẠ ---
+# --- CẤU HÌNH GIS ĐỒNG BỘ DOCKER ---
 import os
 
-# Chỉ cấu hình cứng khi bạn ngồi ở máy Windows (nt)
-if os.name == 'nt':
+if os.name == 'nt': # Máy Windows của bạn
     GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgdal-35.dll'
     GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgeos_c.dll'
-# Trên Railway (Linux), chúng ta để TRỐNG. 
-# Django sẽ tự động tìm trong hệ thống nhờ các gói đã cài trong NIXPACKS_PKGS.
+else:
+    # Trên Railway (Linux), lấy trực tiếp từ ENV trong Dockerfile
+    GDAL_LIBRARY_PATH = os.environ.get('GDAL_LIBRARY_PATH')
+    GEOS_LIBRARY_PATH = os.environ.get('GEOS_LIBRARY_PATH')
