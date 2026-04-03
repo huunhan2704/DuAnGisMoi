@@ -98,15 +98,12 @@ LOGIN_URL = 'login'
 # Thêm import này ở đầu file hoặc ngay đây cũng được
 # --- CẤU HÌNH GIS RÚT GỌN ---
 # --- CẤU HÌNH GIS CHỐT HẠ ---
+# --- CẤU HÌNH GIS CHỐT HẠ ---
+import os
+
+# Chỉ cấu hình cứng khi bạn ngồi ở máy Windows (nt)
 if os.name == 'nt':
-    # Dành cho máy Windows của bạn
     GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgdal-35.dll'
     GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\16\bin\libgeos_c.dll'
-else:
-    # Dành cho Railway (Linux)
-    # Lấy từ Variables bạn vừa điền ở Bước 1, nếu không thấy thì dùng đường dẫn mặc định
-    GDAL_LIBRARY_PATH = os.environ.get('GDAL_LIBRARY_PATH', '/usr/lib/libgdal.so')
-    GEOS_LIBRARY_PATH = os.environ.get('GEOS_LIBRARY_PATH', '/usr/lib/libgeos_c.so')
-
-print(f"DEBUG: GDAL_PATH = {GDAL_LIBRARY_PATH}")
-print(f"DEBUG: GEOS_PATH = {GEOS_LIBRARY_PATH}")
+# Trên Railway (Linux), chúng ta để TRỐNG. 
+# Django sẽ tự động tìm trong hệ thống nhờ các gói đã cài trong NIXPACKS_PKGS.
