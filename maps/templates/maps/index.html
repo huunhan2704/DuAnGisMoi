@@ -210,31 +210,29 @@
                         </ul>
                     </div>
                 </div>
-                <div class="mb-3 text-nowrap">
-                    <label class="form-label fw-bold small text-secondary">Tiêu đề</label>
-                    <select id="tieu_de" class="form-select text-nowrap">
-                        <option value="" selected disabled>-- Chọn loại sự cố --</option>
-                        <optgroup label="Hạ tầng & Giao thông">
-                            <option value="Đường hư / Ổ gà">Đường hư / Ổ gà</option>
-                            <option value="Nắp cống hư hỏng">Nắp cống hư hỏng / Mất nắp</option>
-                            <option value="Biển báo hư hỏng">Biển báo hư hỏng</option>
-                        </optgroup>
-                        <optgroup label="Cây xanh & Môi trường">
-                            <option value="Cây ngã đổ">Cây xanh ngã đổ</option>
-                            <option value="Ngập nước">Ngập nước</option>
-                            <option value="Rác thải bừa bãi">Rác thải bừa bãi</option>
-                        </optgroup>
-                        <optgroup label="Điện & Chiếu sáng">
-                            <option value="Đèn đường hư">Đèn đường không sáng</option>
-                            <option value="Sự cố dây điện">Dây điện đứt / Sà thấp</option>
-                        </optgroup>
-                        <optgroup label="Khác">
-                            <option value="Lấn chiếm vỉa hè">Lấn chiếm vỉa hè</option>
-                            <option value="Khác">Sự cố khác</option>
-                        </optgroup>
-                    </select>
-                    <input type="text" id="input_khac" class="form-control mt-2" placeholder="Nhập tên sự cố cụ thể..." style="display: none;">
-                </div>
+                <div class="mb-3"> <label class="form-label fw-bold small text-secondary">Tiêu đề</label>
+                <select id="tieu_de" class="form-select w-100"> <option value="" selected disabled>-- Chọn loại sự cố --</option>
+                    <optgroup label="Hạ tầng & Giao thông">
+                        <option value="Đường hư / Ổ gà">Đường hư / Ổ gà</option>
+                        <option value="Nắp cống hư hỏng">Nắp cống hư hỏng / Mất nắp</option>
+                        <option value="Biển báo hư hỏng">Biển báo hư hỏng</option>
+                    </optgroup>
+                    <optgroup label="Cây xanh & Môi trường">
+                        <option value="Cây ngã đổ">Cây xanh ngã đổ</option>
+                        <option value="Ngập nước">Ngập nước</option>
+                        <option value="Rác thải bừa bãi">Rác thải bừa bãi</option>
+                    </optgroup>
+                    <optgroup label="Điện & Chiếu sáng">
+                        <option value="Đèn đường hư">Đèn đường không sáng</option>
+                        <option value="Sự cố dây điện">Dây điện đứt / Sà thấp</option>
+                    </optgroup>
+                    <optgroup label="Khác">
+                        <option value="Lấn chiếm vỉa hè">Lấn chiếm vỉa hè</option>
+                        <option value="Khác">Sự cố khác</option>
+                    </optgroup>
+                </select>
+                <input type="text" id="input_khac" class="form-control mt-2" placeholder="Nhập tên sự cố cụ thể..." style="display: none;">
+            </div>
                 <div class="mb-3"><label class="form-label fw-bold small text-secondary">Địa chỉ cụ thể</label><input type="text" id="dia_chi" class="form-control" placeholder="Ví dụ: Số 10 đường Nguyễn Huệ..."></div>
                 <div class="mb-3"><label class="form-label fw-bold small text-secondary">Mô tả</label><textarea id="mo_ta" class="form-control" rows="3" placeholder="Mô tả chi tiết..."></textarea></div>
                 <div class="mb-4">

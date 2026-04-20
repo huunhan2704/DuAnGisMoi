@@ -17,10 +17,13 @@ urlpatterns = [
     path('dang-ky/', views.register_view, name='register'),
     path('dang-nhap/', views.login_view, name='login'),
     path('dang-xuat/', views.logout_view, name='logout'),
-
+    path('kich-hoat/<uidb64>/<token>/', views.kich_hoat_tai_khoan, name='kich_hoat_tai_khoan'),
     # 5. API và Quên mật khẩu
     path('luu-phan-anh/', views.luu_phan_anh, name='luu_phan_anh'),
-    path('quen-mat-khau/', auth_views.PasswordResetView.as_view(template_name='maps/password_reset.html'), name='password_reset'),
+    path('quen-mat-khau/', auth_views.PasswordResetView.as_view(
+    template_name='maps/password_reset.html', 
+    html_email_template_name='maps/password_reset_email.html' # Thêm dòng này để gửi mail dạng HTML
+), name='password_reset'),
     path('quen-mat-khau/xong/', auth_views.PasswordResetDoneView.as_view(template_name='maps/password_reset_done.html'), name='password_reset_done'),
     path('dat-lai-mat-khau/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='maps/password_reset_confirm.html'), name='password_reset_confirm'),
     path('dat-lai-mat-khau/thanh-cong/', auth_views.PasswordResetCompleteView.as_view(template_name='maps/password_reset_complete.html'), name='password_reset_complete'),

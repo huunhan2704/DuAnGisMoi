@@ -31,6 +31,12 @@ from django.contrib.gis.geos import Point
 import json
 from .models import PhanAnh, HinhAnhPhanAnh
 from django.utils import timezone
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
+from django.urls import reverse
 
 #trang admin 
 @staff_member_required(login_url='login') 
@@ -229,17 +235,74 @@ def list_view(request):
     phan_anh = paginator.get_page(page_number)
     return render(request, 'maps/list.html', {'phan_anh': phan_anh})
 
-# 4. ĐĂNG KÝ
 def register_view(request):
     if request.method == 'POST':
         form = DangKyForm(request.POST) 
+        
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('map_home')
+            # Lấy email từ form ra để check trùng
+            email = form.cleaned_data.get('email')
+            
+            # 1. KIỂM TRA TRÙNG EMAIL
+            if User.objects.filter(email=email).exists():
+                messages.error(request, 'Email này đã được sử dụng. Vui lòng chọn Email khác!')
+                return render(request, 'maps/register.html', {'form': form})
+
+            # 2. LƯU USER NHƯNG KHÓA LẠI (commit=False để khoan lưu vội)
+            user = form.save(commit=False)
+            user.is_active = False # Bắt buộc kích hoạt mail mới cho xài
+            user.save()
+
+            # 3. TẠO MÃ BÍ MẬT & LINK KÍCH HOẠT
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            domain = request.get_host()
+            link_kich_hoat = f"http://{domain}{reverse('kich_hoat_tai_khoan', kwargs={'uidb64': uid, 'token': token})}"
+
+            # 4. BẮN MAIL QUA MAILTRAP
+            subject = 'Kích hoạt tài khoản SafeCity'
+            html_content = f"""
+                <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f8;">
+                    <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px;">
+                        <h2 style="color: #0d6efd;">Chào mừng đến với SafeCity!</h2>
+                        <p>Bạn vừa tạo một tài khoản với tên đăng nhập là: <b>{user.username}</b></p>
+                        <p>Vui lòng nhấn vào nút bên dưới để xác thực email và kích hoạt tài khoản của bạn:</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="{link_kich_hoat}" style="background-color: #28a745; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Xác Nhận Email</a>
+                        </div>
+                    </div>
+                </div>
+            """
+            email_msg = EmailMultiAlternatives(subject, "Vui lòng bật HTML để xem mail", 'admin@safecity.com', [email])
+            email_msg.attach_alternative(html_content, "text/html")
+            email_msg.send()
+
+            # XÓA DÒNG login() CŨ, THAY BẰNG THÔNG BÁO VÀ CHUYỂN HƯỚNG
+            messages.success(request, 'Đăng ký thành công! Vui lòng kiểm tra Email (Mailtrap) để kích hoạt tài khoản.')
+            return redirect('login') # Chuyển về trang đăng nhập
+
     else:
         form = DangKyForm()
+        
     return render(request, 'maps/register.html', {'form': form})
+
+def kich_hoat_tai_khoan(request, uidb64, token):
+    try:
+        # Giải mã xem ai đang bấm link
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    # Kiểm tra mã Token có đúng không
+    if user is not None and default_token_generator.check_token(user, token):
+        user.is_active = True # MỞ KHÓA THÀNH CÔNG
+        user.save()
+        messages.success(request, 'Tài khoản của bạn đã được kích hoạt thành công! Giờ có thể đăng nhập.')
+        return redirect('login') # Đổi chữ 'login' cho khớp với tên trang đăng nhập của ông
+    else:
+        messages.error(request, 'Link kích hoạt không hợp lệ hoặc đã hết hạn!')
+        return redirect('register') # Đổi chữ 'register' cho khớp với tên trang đăng ký
 
 # 5. ĐĂNG NHẬP
 def login_view(request):
