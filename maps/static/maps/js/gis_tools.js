@@ -54,14 +54,57 @@ function thucHienVeDuongOSRM(diemBatDau, diemKetThuc) {
     routingControl = L.Routing.control({
         waypoints: [diemBatDau, diemKetThuc],
         routeWhileDragging: true, 
-        language: 'vi',
-        showAlternatives: true,
+        language: 'en', 
+        show: true,    
+        showAlternatives: true, // Vẫn cho phép tìm đường thay thế
+
+        // 1. MÀU CHO TUYẾN ĐƯỜNG CHÍNH (Tối ưu nhất)
+        lineOptions: {
+            styles: [{color: '#0d6efd', opacity: 0.9, weight: 6}], // Màu xanh dương đậm, rõ nét
+            extendToWaypoints: true,
+            missingRouteTolerance: 0
+        },
+        
+        // 2. MÀU CHO CÁC TUYẾN ĐƯỜNG PHỤ (Dự phòng)
+        altLineOptions: {
+            styles: [{color: '#cf2ab1', opacity: 0.7, weight: 5}] // Màu xám, hơi mờ, nét đứt
+        },
+
         router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
         createMarker: function(i, w, n) {
             var mTitle = (i === 0) ? '📍 Nơi xuất phát' : '📍 Đích đến';
             return L.marker(w.latLng, {draggable: true, title: mTitle}).bindPopup(mTitle);
         }
     }).addTo(map);
+}
+// --- HÀM MỚI: BỘ NÃO XỬ LÝ TRƯỚC KHI VẼ ĐƯỜNG ---
+// Hàm này sẽ được gọi khi bấm nút "Chỉ đường" trong Popup
+function chiDuongDenSuCo(destLat, destLng) {
+    var diemKetThuc = L.latLng(destLat, destLng);
+
+    // TRƯỜNG HỢP 1: Người dùng ĐÃ TÌM KIẾM hoặc CHẤM ĐIỂM trên bản đồ
+    // (Biến currentOrigin lấy từ file index.html qua)
+    if (typeof currentOrigin !== 'undefined' && currentOrigin !== null) {
+        var diemBatDau = L.latLng(currentOrigin.lat, currentOrigin.lng);
+        thucHienVeDuongOSRM(diemBatDau, diemKetThuc);
+    } 
+    // TRƯỜNG HỢP 2: Người dùng CHƯA làm gì cả -> Bật GPS lấy vị trí hiện tại
+    else {
+        if (navigator.geolocation) {
+            alert("Đang lấy vị trí GPS hiện tại của bạn...");
+            navigator.geolocation.getCurrentPosition(
+                function(position) { // Thành công lấy GPS
+                    var diemBatDau = L.latLng(position.coords.latitude, position.coords.longitude);
+                    thucHienVeDuongOSRM(diemBatDau, diemKetThuc);
+                }, 
+                function(error) { // Lỗi hoặc người dùng không cho phép GPS
+                    alert("Không thể lấy vị trí GPS. Vui lòng CHẤM 1 ĐIỂM xuất phát trên bản đồ hoặc NHẬP ĐỊA CHỈ trên thanh tìm kiếm!");
+                }
+            );
+        } else {
+            alert("Trình duyệt của bạn không hỗ trợ định vị. Vui lòng CHẤM 1 ĐIỂM trên bản đồ!");
+        }
+    }
 }
 
 // # 2. CÔNG CỤ NỘI SUY BẢN ĐỒ NHIỆT (HEATMAP INTERPOLATION)
@@ -106,7 +149,7 @@ function renderMap(dataToRender) {
                         <span class="badge text-dark popup-status mb-2" style="background:${color}; color:white!important;">${item.status_text}</span>
                         ${item.image ? "<img src='" + item.image + "' class='popup-img'>" : ""}
                         <hr class="my-2">
-                        <button onclick="veDuongDi(${c.lat}, ${c.lng})" class="btn btn-sm btn-outline-primary w-100 fw-bold">
+                        <button onclick="chiDuongDenSuCo(${c.lat}, ${c.lng})" class="btn btn-sm btn-outline-primary w-100 fw-bold">
                             <i class="fa-solid fa-directions me-1"></i> Chỉ đường đi
                         </button>
                     </div>`;

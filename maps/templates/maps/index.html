@@ -312,7 +312,17 @@
         // 1. Khởi tạo Bản đồ
         var map = L.map('map', {zoomControl: false}).setView([10.762622, 106.660172], 13);
         var routingControl = null;
-
+        var currentOrigin = null;
+        var originMarker = null;
+        // Hàm chuyên dụng để vẽ chấm xuất phát
+        function veChamXuatPhat(latlng, tenDiaDiem) {
+            if (originMarker != null) {
+                map.removeLayer(originMarker); // Xóa chấm cũ đi cho khỏi rác bản đồ
+            }
+            currentOrigin = latlng; // Lưu tọa độ vào não để dành cho nút Chỉ đường
+            // Vẽ cái chấm mới và hiện bảng tên
+            originMarker = L.marker(latlng).addTo(map).bindPopup("📍 " + tenDiaDiem).openPopup();
+        }
         // Fix lỗi 403 bằng CartoDB
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO',
@@ -336,24 +346,33 @@
             map.fitBounds(poly.getBounds());
 
             // --- PHẦN THÊM MỚI (Tự động chấm điểm & Điền địa chỉ) ---
-            var center = e.geocode.center; // Lấy tọa độ tâm vừa search
-            var addressName = e.geocode.name; // Lấy tên địa chỉ chi tiết
+            var center = e.geocode.center;  
+            var addressName = e.geocode.name; 
 
-            // A. Bay tới vị trí chính xác với độ zoom cao (18) cho ngầu
+            // 1. Bay tới vị trí chính xác
             map.flyTo(center, 18, { animate: true, duration: 1.5 });
 
-            // B. Tự động gọi hàm addMarker để chấm dấu xanh lên map và lưu vào danh sách
-            if (typeof addMarker === 'function') {
-                addMarker(center.lat, center.lng);
-            }
-
-            // C. Tự động điền tên địa điểm vào ô "Địa chỉ cụ thể" cho người dùng
+            // 2. Tự động điền địa chỉ
             var inputDiaChi = document.getElementById('dia_chi');
             if (inputDiaChi) {
                 inputDiaChi.value = addressName;
             }
-        })
-        .addTo(map);
+
+            // 3. VẼ CHẤM ĐỊNH VỊ (Xử lý delay 1 giây để nó bay tới nơi mới vẽ cho mượt)
+            setTimeout(function() {
+                if (typeof veChamXuatPhat === 'function') {
+                    veChamXuatPhat(center, addressName);
+                } else {
+                    currentOrigin = center;
+                }
+
+                // 4. CHẤM ĐIỂM BÁO CÁO (Nếu muốn tắt thì comment 3 dòng dưới này lại)
+                if (typeof addMarker === 'function') {
+                    addMarker(center.lat, center.lng);
+                }
+            }, 1000); // 1000 = 1 giây
+            
+        }).addTo(map);
 
         // GIỮ NGUYÊN ĐOẠN SETUP GIAO DIỆN CỦA ÔNG
         setTimeout(function() {
@@ -475,6 +494,9 @@
             }
 
             var toaDoMoi = e.latlng;
+            // GỌI HÀM VẼ CHẤM
+            veChamXuatPhat(toaDoMoi, "Điểm bạn vừa chọn");
+            currentOrigin = toaDoMoi;
             var KHOANG_CACH_TOI_THIEU = 15; 
             var biTrung = false;
 
@@ -559,8 +581,21 @@
         });
         
 
-        function locateUser() { map.locate({setView: true, maxZoom: 16}); }
-        // 9. Hàm Xem trước hình ảnh
+        // Sự kiện khi tìm thấy GPS
+        map.on('locationfound', function(e) {
+            veChamXuatPhat(e.latlng, "Vị trí GPS của bạn");
+        });
+
+        // Sự kiện khi GPS bị lỗi hoặc không cho phép
+        map.on('locationerror', function(e) {
+            alert("⚠️ Không thể lấy vị trí. Vui lòng bật định vị trên trình duyệt!");
+        });
+
+        // Hàm gắn vào nút bấm GPS
+        function locateUser() { 
+            map.locate({setView: true, maxZoom: 16}); 
+        }
+                // 9. Hàm Xem trước hình ảnh
         function previewImages() {
             var input = document.getElementById('hinh_anh');
             var container = document.getElementById('image-preview-container');
