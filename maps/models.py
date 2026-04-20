@@ -8,10 +8,10 @@ from django.utils import timezone
 class PhanAnh(models.Model):
     # 1. Tiêu đề
     tieu_de = models.CharField(max_length=200, verbose_name="Tiêu đề")
-    
+
     # 2. Mô tả
     mo_ta = models.TextField(verbose_name="Mô tả chi tiết")
-    dia_chi = models.CharField(max_length=255, blank=True, null=True, verbose_name="Địa chỉ/Tên đường")
+    dia_chi = models.CharField(max_length=200, blank=True, null=True, verbose_name="Địa chỉ/Tên đường")
     # 3. Tọa độ
     du_lieu_toa_do = models.TextField(verbose_name="Danh sách tọa độ")
     

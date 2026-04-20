@@ -1,8 +1,21 @@
-// # 1. CÔNG CỤ CHỈ ĐƯỜNG (ROUTING)
-// Chức năng: Lấy vị trí GPS hiện tại của người dùng và vẽ đường đi ngắn nhất đến điểm sự cố.
-var routeColorIndex = 0;
+// =================================================================
+// 1. CÔNG CỤ CHỈ ĐƯỜNG THÔNG MINH (TÍCH HỢP ĐIỂM GHI NHỚ TẠM)
+// =================================================================
+
+var diemXuatPhatTam = null; 
+var diemTamMarker = null;
+var routingControl = null; // Khai báo biến này để tránh báo lỗi
+
+// Hàm gán Điểm tạm vào bộ nhớ
+function datLamDiemXuatPhat(lat, lng) {
+    diemXuatPhatTam = L.latLng(lat, lng);
+    alert("Đã ghi nhớ thành công!");
+    if (typeof map !== 'undefined') map.closePopup();
+}
+
+// ---> CẬP NHẬT LẠI HÀM VẼ ĐƯỜNG CHÍNH <---
 function veDuongDi(diemDenLat, diemDenLng) {
-    // --- 1. ĐÓNG BẢNG CÔNG CỤ GIS KHI MỞ CHỈ ĐƯỜNG ---
+    // Tự động đóng bảng công cụ GIS nếu đang mở
     const gisBody = document.getElementById('gisToolsBody');
     const icon = document.getElementById('iconToggle');
     if (gisBody && gisBody.style.display !== 'none') {
@@ -10,68 +23,45 @@ function veDuongDi(diemDenLat, diemDenLng) {
         if (icon) icon.className = 'fa-solid fa-plus';
     }
 
-    if (navigator.geolocation) {
+    var diemDen = L.latLng(diemDenLat, diemDenLng);
+
+    // KỊCH BẢN 1: Nếu người dùng đã ghim "Điểm Tạm" -> Dùng điểm tạm để vẽ
+    if (diemXuatPhatTam != null) {
+        thucHienVeDuongOSRM(diemXuatPhatTam, diemDen);
+    } 
+    // KỊCH BẢN 2: Nếu không có Điểm Tạm -> Gọi hệ thống định vị GPS
+    else if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             function(position) {
                 var viTriCuaToi = L.latLng(position.coords.latitude, position.coords.longitude);
-                var diemDen = L.latLng(diemDenLat, diemDenLng);
-
-                // Xóa đường đi cũ nếu có
-                if (routingControl != null) map.removeControl(routingControl);
-
-                // Gọi API của OSRM để vẽ đường
-                routingControl = L.Routing.control({
-                    waypoints: [viTriCuaToi, diemDen],
-                    routeWhileDragging: false,
-                    language: 'en',
-                    showAlternatives: true,
-                    router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
-                    createMarker: function(i, w, n) {
-                        var c = (i === 0) ? '#198754' : '#dc3545';
-                        var t = (i === 0) ? '📍 Vị trí thật của bạn' : '⚠️ Điểm sự cố';
-                        return L.circleMarker(w.latLng, {
-                            color: 'white',
-                            fillColor: c,
-                            fillOpacity: 1,
-                            radius: 8,
-                            weight: 2
-                        }).bindPopup(t).openPopup();
-                    },
-                    collapsible: true,
-                    routeLine: function(route, options) {
-                        // Bảng màu: Xanh dương (chính), Đỏ, Xanh lá, Tím, Cam
-                        var colors = ['#0d6efd', '#dc3545', '#198754', '#6f42c1', '#fd7e14']; 
-                        var color = colors[routeColorIndex % colors.length];
-                        routeColorIndex++; // Tăng biến đếm
-
-                        return L.Routing.line(route, {
-                            addWaypoints: false,
-                            extendToWaypoints: true,
-                            routeWhileDragging: false,
-                            autoRoute: true,
-                            useZoomParameter: false,
-                            styles: [
-                                {color: 'black', opacity: 0.15, weight: 10}, // Viền bóng mờ
-                                {color: color, opacity: 0.9, weight: 6}      // Màu đường chính
-                            ]
-                        });
-                    }
-                }).addTo(map);
-                routingControl.on('routingstart', function() {
-                    routeColorIndex = 0; 
-                });
-
-                routingControl.show();
+                thucHienVeDuongOSRM(viTriCuaToi, diemDen);
             },
-            function(error) {
-                console.log("Trình duyệt báo lỗi GPS ngầm: " + error.message);
-                alert("Không thể lấy vị trí hiện tại của bạn để chỉ đường.");
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            function() {
+                alert("❌ GPS bị từ chối hoặc mất tín hiệu. Vui lòng Click CHUỘT PHẢI lên bản đồ để tự ghim 'Điểm Ghi Nhớ Tạm' nhé!");
+            }
         );
     } else {
-        alert("Trình duyệt không hỗ trợ GPS.");
+        alert("❌ Trình duyệt không hỗ trợ định vị GPS.");
     }
+}
+
+// Cỗ máy xử lý vẽ đường bằng API
+function thucHienVeDuongOSRM(diemBatDau, diemKetThuc) {
+    if (typeof routingControl !== 'undefined' && routingControl != null) {
+        map.removeControl(routingControl);
+    }
+
+    routingControl = L.Routing.control({
+        waypoints: [diemBatDau, diemKetThuc],
+        routeWhileDragging: true, 
+        language: 'vi',
+        showAlternatives: true,
+        router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+        createMarker: function(i, w, n) {
+            var mTitle = (i === 0) ? '📍 Nơi xuất phát' : '📍 Đích đến';
+            return L.marker(w.latLng, {draggable: true, title: mTitle}).bindPopup(mTitle);
+        }
+    }).addTo(map);
 }
 
 // # 2. CÔNG CỤ NỘI SUY BẢN ĐỒ NHIỆT (HEATMAP INTERPOLATION)
@@ -436,4 +426,4 @@ function guiBaoCao() {
         })
         .catch(() => alert("❌ Lỗi mạng!"))
         .finally(() => { btn.innerHTML = oldText; btn.disabled = false; });
-}
+    }

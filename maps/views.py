@@ -10,7 +10,10 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
 from .forms import DangKyForm, UserEditForm, ProfileEditForm 
 from .models import Profile
+from datetime import timedelta
+from django.utils import timezone
 import csv
+import os
 from django.http import HttpResponse
 import feedparser
 from datetime import datetime
@@ -266,6 +269,22 @@ def luu_phan_anh(request):
             mota = request.POST.get('mo_ta')
             toado = request.POST.get('points_data')
             diachi = request.POST.get('dia_chi') 
+            if request.user.is_authenticated:
+                # Lấy mốc thời gian cách đây đúng 1 tiếng
+                mot_gio_truoc = timezone.now() - timedelta(hours=1)
+                
+                # Đếm số phản ánh người này đã gửi từ mốc thời gian đó đến hiện tại
+                so_bai_da_gui = PhanAnh.objects.filter(
+                    nguoi_gui=request.user,
+                    thoi_gian__gte=mot_gio_truoc
+                ).count()
+
+                # Nếu đã gửi >= 3 bài thì lập tức chặn lại
+                if so_bai_da_gui >= 3:
+                    return JsonResponse({
+                        'success': False,
+                        'message': '⏳ Bạn đã đạt giới hạn gửi 3 phản ánh trong 1 giờ. Vui lòng nghỉ ngơi và thử lại sau nhé!'
+                    })
             
             # --- 2. KHỞI TẠO ĐỐI TƯỢNG PHẢN ÁNH ---
             new_pa = PhanAnh(
@@ -274,6 +293,30 @@ def luu_phan_anh(request):
                 dia_chi=diachi,
                 du_lieu_toa_do=toado,
             )
+
+            hinh_anh_list = request.FILES.getlist('hinh_anh')
+            
+            for f in hinh_anh_list:
+                # 1. Tách tên gốc và đuôi (VD: 'anh hu.png' -> 'anh hu' và '.png')
+                ten_goc, duoi_file = os.path.splitext(f.name)
+                
+                # 2. Django tự biến khoảng trắng thành gạch dưới, ta phải chuẩn hóa theo nó
+                ten_goc_sach = ten_goc.replace(" ", "_")
+                
+                # 3. Tạo chuỗi tìm kiếm (VD: '/anh_hu'). 
+                # Cách này bắt dính cả 'hien_truong/anh_hu.png' lẫn 'hien_truong/anh_hu_aBc12.png'
+                chuoi_tim_kiem = f"/{ten_goc_sach}"
+                
+                # Dùng icontains thay vì endswith
+                trung_anh_chinh = PhanAnh.objects.filter(hinh_anh__icontains=chuoi_tim_kiem).exists()
+                trung_anh_phu = HinhAnhPhanAnh.objects.filter(hinh_anh__icontains=chuoi_tim_kiem).exists()
+
+                if trung_anh_chinh or trung_anh_phu:
+                    # Chặn đứng ngay lập tức!
+                    return JsonResponse({
+                        'success': False,
+                        'message': f"Tên ảnh '{f.name}' đã bị trùng trên hệ thống. Vui lòng đổi tên file khác!"
+                    })
 
             # --- 3. XỬ LÝ TỌA ĐỘ (POSTGIS) ---
             if toado and toado != "[]":
@@ -296,25 +339,26 @@ def luu_phan_anh(request):
 
             # --- 4. XỬ LÝ LƯU NHIỀU HÌNH ẢNH (BỘ LỌC THÔNG MINH) ---
             # Dùng 'getlist' để hốt toàn bộ file gửi lên từ khóa 'hinh_anh'
-            danh_sach_hinh = request.FILES.getlist('hinh_anh')
+            hinh_anh_list = request.FILES.getlist('hinh_anh')
+            
             
             # --- MÁY QUÉT X-QUANG (DEBUG TRÊN TERMINAL) ---
             print("\n" + "="*40)
             print(f"🚀 THÔNG TIN NHẬN ĐƯỢC:")
             print(f"👉 Tiêu đề: {tieude}")
-            print(f"👉 Số lượng ảnh nhận được: {len(danh_sach_hinh)} file")
+            print(f"👉 Số lượng ảnh nhận được: {len(hinh_anh_list)} file")
             print("="*40)
             
-            if danh_sach_hinh:
+            if hinh_anh_list:
                 # A. Lấy tấm đầu tiên làm ảnh đại diện (Hiển thị ngoài danh sách)
-                new_pa.hinh_anh = danh_sach_hinh[0]
+                new_pa.hinh_anh = hinh_anh_list[0]
                 new_pa.save() # Cập nhật lại ảnh đại diện
                 print("✅ 1. Đã lưu Ảnh đại diện.")
                 
                 # B. Lưu các tấm còn lại vào Kho ảnh phụ (HinhAnhPhanAnh)
                 # Dùng [1:] để bỏ qua tấm đầu tiên đã lưu ở trên, tránh bị trùng lặp
                 dem_anh_phu = 0
-                for file_anh in danh_sach_hinh[1:]:
+                for file_anh in hinh_anh_list[1:]:
                     HinhAnhPhanAnh.objects.create(
                         phan_anh=new_pa, 
                         hinh_anh=file_anh
