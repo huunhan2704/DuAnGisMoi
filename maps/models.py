@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
-
+from ckeditor_uploader.fields import RichTextUploadingField
 # 1. MODEL PHẢN ÁNH
 class PhanAnh(models.Model):
     # 1. Tiêu đề
@@ -116,3 +116,27 @@ class HinhAnhPhanAnh(models.Model):
 
     def __str__(self):
         return f"Ảnh phụ của sự cố: {self.phan_anh.tieu_de}"
+    
+class GioiThieu(models.Model):
+    tieu_de = models.CharField(max_length=200, verbose_name="Tiêu đề chính")
+    mo_ta_ngan = models.TextField(verbose_name="Mô tả ngắn (Slogan)")
+    # Sử dụng RichTextField để có thanh công cụ định dạng
+    noi_dung_chi_tiet = RichTextUploadingField(verbose_name="Nội dung chi tiết")
+    ngay_cap_nhat = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Quản lý Giới thiệu"
+        verbose_name_plural = "Quản lý Giới thiệu"
+
+    def __str__(self):
+        return self.tieu_de
+
+# Model mới để lưu nhiều ảnh cho Slide
+class AnhGioiThieu(models.Model):
+    gioi_thieu = models.ForeignKey(GioiThieu, related_name='images', on_delete=models.CASCADE)
+    hinh_anh = models.ImageField(upload_to='gioi_thieu/', verbose_name="Hình ảnh Slide")
+    mo_ta_anh = models.CharField(max_length=255, blank=True, null=True, verbose_name="Mô tả ảnh")
+
+    class Meta:
+        verbose_name = "Hình ảnh Giới thiệu"
+        verbose_name_plural = "Danh sách ảnh Slide"

@@ -1,7 +1,8 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 from django.contrib.auth import views as auth_views
-
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     # 1. Trang chủ
@@ -73,4 +74,9 @@ urlpatterns = [
     path('xoa-vinh-vien/<int:id>/', views.xoa_vinh_vien_phan_anh, name='xoa_vinh_vien'),
     # 18.Thêm user
     path('them-user/', views.them_user, name='them_user'),
+    # 19.Trang giới thiệu
+    path('gioi-thieu/', views.gioi_thieu_view, name='gioi_thieu'),
+    path('ckeditor/', include('ckeditor_uploader.urls')),
 ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

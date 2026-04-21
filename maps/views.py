@@ -37,7 +37,8 @@ from django.utils.encoding import force_bytes, force_str
 from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from django.urls import reverse
-
+from .models import GioiThieu 
+from .forms import GioiThieuForm
 #trang admin 
 @staff_member_required(login_url='login') 
 def trang_quan_ly(request):
@@ -45,6 +46,24 @@ def trang_quan_ly(request):
     # 1. Tự động dọn rác quá 7 ngày (giữ nguyên logic cũ)
     thoi_han = timezone.now() - timedelta(days=7)
     PhanAnh.objects.filter(da_xoa=True, ngay_xoa__lt=thoi_han).delete()
+
+    # --- KHÚC CODE MỚI: XỬ LÝ FORM GIỚI THIỆU ---
+    # Lấy bài Giới thiệu có sẵn, nếu chưa có thì lấy rỗng
+    obj_gioi_thieu = GioiThieu.objects.first()
+    
+    # Nếu Admin bấm nút "Lưu thay đổi" từ Tab Giới thiệu
+    if request.method == 'POST' and 'btn_luu_gioi_thieu' in request.POST:
+        form_gt = GioiThieuForm(request.POST, instance=obj_gioi_thieu)
+        if form_gt.is_valid():
+            form_gt.save()
+            messages.success(request, "✅ Đã lưu nội dung Giới thiệu thành công!")
+            # Trả về cùng trang Admin để tiếp tục làm việc
+            return redirect('trang_quan_ly') 
+        else:
+            messages.error(request, "❌ Lỗi: Vui lòng kiểm tra lại dữ liệu nhập vào.")
+    else:
+        # Nếu chỉ tải trang bình thường (GET request), thì nạp form có sẵn dữ liệu cũ
+        form_gt = GioiThieuForm(instance=obj_gioi_thieu)
 
     # 2. Lấy dữ liệu gốc (Chưa phân trang)
     tat_ca_tieu_de = PhanAnh.objects.filter(da_xoa=False).values_list('tieu_de', flat=True).distinct()
@@ -93,6 +112,7 @@ def trang_quan_ly(request):
         'tat_ca_tieu_de': tat_ca_tieu_de,
         'tieu_de_da_chon': tieu_de_da_chon,
         'filter_role': filter_role,
+        'form_gt': form_gt,
     }
     return render(request, 'maps/quan_ly.html', context)
 
@@ -726,3 +746,8 @@ Trân trọng,
 
     # Nếu chưa bấm gửi thì gọi cái giao diện soạn thư ra
     return render(request, 'maps/tra_loi_ho_tro.html', {'ht': ht})
+
+def gioi_thieu_view(request):
+    # Lấy bản ghi giới thiệu mới nhất
+    info = GioiThieu.objects.first() 
+    return render(request, 'maps/gioi_thieu.html', {'info': info})

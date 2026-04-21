@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'ckeditor',
+    'ckeditor_uploader',
     'maps',
 ]
 
@@ -146,3 +148,16 @@ if os.name == 'nt':
     # Đường dẫn lấy từ máy (PostgreSQL 18)
     GDAL_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\18\bin\libgdal-35.dll'
     GEOS_LIBRARY_PATH = r'C:\Program Files\PostgreSQL\18\bin\libgeos_c.dll'
+    CKEDITOR_UPLOAD_PATH = "uploads/"
+    
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 300,
+        'width': '100%',
+        # Ép nó xài giao diện upload
+        'extraPlugins': ','.join([
+            'uploadimage', # Kích hoạt plugin tải ảnh
+        ]),
+    },
+}

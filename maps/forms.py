@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from .models import Profile
+from .models import GioiThieu
 
 # 1. FORM ĐĂNG KÝ (Cũ - Giữ nguyên)
 class DangKyForm(UserCreationForm):
@@ -32,3 +33,23 @@ class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = ('so_dien_thoai', 'avatar')
+        
+class GioiThieuForm(forms.ModelForm):
+    class Meta:
+        model = GioiThieu
+        # Chỗ này cực kỳ quan trọng: Phải liệt kê tên các cột ông muốn hiện ra
+        fields = ['tieu_de', 'mo_ta_ngan', 'noi_dung_chi_tiet']
+        
+        # Cái này giúp giao diện form nhìn xịn xò chuẩn Bootstrap
+        widgets = {
+            'tieu_de': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Nhập tiêu đề chính...'
+            }),
+            'mo_ta_ngan': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3, 
+                'placeholder': 'Nhập mô tả ngắn gọn (Slogan)...'
+            }),
+            # Ô noi_dung_chi_tiet ông đang dùng ckeditor nên không cần widget
+        }

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import PhanAnh, HoTro
-
+from .models import GioiThieu, AnhGioiThieu
 @admin.register(PhanAnh)
 class PhanAnhAdmin(admin.ModelAdmin):
     list_display = ('tieu_de', 'thoi_gian', 'trang_thai') # Hiện 3 cột này ra ngoài
@@ -13,3 +13,13 @@ class HoTroAdmin(admin.ModelAdmin):
     list_filter = ('da_xu_ly', 'chu_de')
     search_fields = ('ho_ten', 'email', 'noi_dung', 'sdt')
     readonly_fields = ('thoi_gian',) # Không cho sửa ngày giờ gửi
+
+# Cho phép thêm ảnh ngay trong trang chỉnh sửa nội dung
+class AnhGioiThieuInline(admin.TabularInline):
+    model = AnhGioiThieu
+    extra = 3 # Hiển thị sẵn 3 ô để up ảnh
+
+@admin.register(GioiThieu)
+class GioiThieuAdmin(admin.ModelAdmin):
+    inlines = [AnhGioiThieuInline]
+    list_display = ('tieu_de', 'ngay_cap_nhat')
