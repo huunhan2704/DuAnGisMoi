@@ -77,6 +77,9 @@ urlpatterns = [
     # 19.Trang giới thiệu
     path('gioi-thieu/', views.gioi_thieu_view, name='gioi_thieu'),
     path('ckeditor/', include('ckeditor_uploader.urls')),
+    path('them-khu-vuc/', views.them_khu_vuc, name='them_khu_vuc'),
+    path('api/ranh-gioi/', views.api_get_ranh_gioi, name='api_get_ranh_gioi'),
+    path('api/get-points/', views.api_get_points, name='api_get_points'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

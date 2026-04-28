@@ -39,6 +39,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.urls import reverse
 from .models import GioiThieu 
 from .forms import GioiThieuForm
+from .models import QuanHuyen, Profile
 #trang admin 
 @staff_member_required(login_url='login') 
 def trang_quan_ly(request):
@@ -66,28 +67,59 @@ def trang_quan_ly(request):
         form_gt = GioiThieuForm(instance=obj_gioi_thieu)
 
     # 2. Lấy dữ liệu gốc (Chưa phân trang)
-    tat_ca_tieu_de = PhanAnh.objects.filter(da_xoa=False).values_list('tieu_de', flat=True).distinct()
+    # =========================================================
+    # LỌC DỮ LIỆU THEO QUẬN (PHÂN QUYỀN LÃNH ĐỊA)
+    # =========================================================
+    user_dang_nhap = request.user
+
+    if user_dang_nhap.is_superuser:
+        # 2A. Admin Tổng: Thấy toàn bộ thành phố
+        pa_list = PhanAnh.objects.filter(da_xoa=False)
+        ds_thung_rac = PhanAnh.objects.filter(da_xoa=True).order_by('-ngay_xoa')
+    else:
+        # 2B. Nhân viên: Chỉ thấy quận của mình
+        try:
+            quan_duoc_giao = user_dang_nhap.profile.quan_quan_ly
+            if quan_duoc_giao:
+                pa_list = PhanAnh.objects.filter(da_xoa=False, quan_huyen=quan_duoc_giao)
+                ds_thung_rac = PhanAnh.objects.filter(da_xoa=True, quan_huyen=quan_duoc_giao).order_by('-ngay_xoa')
+                # Báo cho họ biết để đỡ bỡ ngỡ
+                messages.info(request, f"Bạn đang quản lý khu vực: {quan_duoc_giao.ten_quan}")
+            else:
+                # Chưa được gán quận -> Chặn không cho xem
+                pa_list = PhanAnh.objects.none()
+                ds_thung_rac = PhanAnh.objects.none()
+                messages.warning(request, "Tài khoản của bạn chưa được phân công quận nào. Vui lòng liên hệ Admin Tổng!")
+        except:
+            pa_list = PhanAnh.objects.none()
+            ds_thung_rac = PhanAnh.objects.none()
+
+    # Sắp xếp và tối ưu dữ liệu
+    pa_list = pa_list.prefetch_related('danh_sach_anh').order_by('-id')
+
+    # Xử lý Bộ lọc Tiêu đề (Chỉ lấy tiêu đề của những bài trong Quận đó)
+    tat_ca_tieu_de = pa_list.values_list('tieu_de', flat=True).distinct()
     tieu_de_da_chon = request.GET.getlist('filter_tieu_de')
     focus_id = request.GET.get('focus_id')
-    pa_list = PhanAnh.objects.filter(da_xoa=False).prefetch_related('danh_sach_anh').order_by('-id')
+
     if tieu_de_da_chon:
         if focus_id:
             pa_list = pa_list.filter(Q(tieu_de__in=tieu_de_da_chon) | Q(id=focus_id))
         else:
             pa_list = pa_list.filter(tieu_de__in=tieu_de_da_chon)
-    ht_list = HoTro.objects.all().order_by('-id')
-    us_list = User.objects.all().order_by('-id')
 
+    # Lấy các bảng khác (Hỗ trợ, User giữ nguyên)
+    ht_list = HoTro.objects.all().order_by('-id')
+    
     # 3. Thực hiện phân trang 15 mục/trang
-    # Phân trang cho Phản Ánh
     paginator_pa = Paginator(pa_list, 15) 
-    page_pa = request.GET.get('page_pa') # Dùng tên biến riêng để tránh xung đột giữa các Tab
+    page_pa = request.GET.get('page_pa') 
     ds_phan_anh = paginator_pa.get_page(page_pa)
 
-    # Phân trang cho Hỗ Trợ
     paginator_ht = Paginator(ht_list, 15)
     page_ht = request.GET.get('page_ht')
     ds_ho_tro = paginator_ht.get_page(page_ht)
+
     # Lọc tài khoản (quản lý tài khoản)
     filter_role = request.GET.get('filter_role', '')
     ds_user = User.objects.all().order_by('-id')
@@ -95,26 +127,31 @@ def trang_quan_ly(request):
     if filter_role == 'admin':
         ds_user = ds_user.filter(is_superuser=True)
     elif filter_role == 'staff':
-        # Nhân viên là người có is_staff=True nhưng is_superuser=False
         ds_user = ds_user.filter(is_staff=True, is_superuser=False)
     elif filter_role == 'user':
-        # Người dùng thường là cả 2 cái đều False
         ds_user = ds_user.filter(is_staff=False, is_superuser=False)
-
-    # Thùng rác (Thường không cần phân trang nếu ít, nhưng nếu cần bạn làm tương tự)
-    ds_thung_rac = PhanAnh.objects.filter(da_xoa=True).order_by('-ngay_xoa')
-
+    ds_quan_huyen = QuanHuyen.objects.all()
     context = {
         'ds_phan_anh': ds_phan_anh,
         'ds_ho_tro': ds_ho_tro,
-        'ds_user': ds_user, # Giữ nguyên hoặc phân trang tương tự
+        'ds_user': ds_user, 
         'ds_thung_rac': ds_thung_rac,
         'tat_ca_tieu_de': tat_ca_tieu_de,
         'tieu_de_da_chon': tieu_de_da_chon,
         'filter_role': filter_role,
         'form_gt': form_gt,
+        'ds_quan_huyen': ds_quan_huyen,
     }
     return render(request, 'maps/quan_ly.html', context)
+
+@staff_member_required(login_url='login')
+def them_khu_vuc(request):
+    if request.user.is_superuser and request.method == 'POST':
+        ten_quan_moi = request.POST.get('ten_quan')
+        if ten_quan_moi:
+            QuanHuyen.objects.get_or_create(ten_quan=ten_quan_moi)
+            messages.success(request, f"✅ Đã tạo khu vực mới: {ten_quan_moi}")
+    return redirect('trang_quan_ly')
 
 @staff_member_required(login_url='login')
 def duyet_phan_anh(request, id):
@@ -165,6 +202,7 @@ def xoa_vinh_vien_phan_anh(request, id):
     messages.warning(request, "🗑️ Đã xóa vĩnh viễn dữ liệu.")
     # Sửa từ 'quan_ly' thành 'trang_quan_ly'
     return redirect('trang_quan_ly')
+
 @staff_member_required(login_url='login')
 def them_user(request):
     # CHỈ SUPERUSER MỚI CÓ QUYỀN VÀO ĐÂY
@@ -178,14 +216,23 @@ def them_user(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         role = request.POST.get('role')
+        quan_huyen_id = request.POST.get('quan_huyen') # DÒNG MỚI: Lấy ID quận từ form
 
         # 1. Kiểm tra xem tên đăng nhập đã tồn tại chưa
         if User.objects.filter(username=username).exists():
             messages.error(request, f"⚠️ Tên đăng nhập '{username}' đã có người sử dụng!")
             return redirect('trang_quan_ly')
+            
+        # ==================================================
+        # 🚧 BƯỚC CHẶN MỚI: KIỂM TRA TRÙNG EMAIL
+        # ==================================================
+        if email and User.objects.filter(email=email).exists():
+            messages.error(request, f"⚠️ Lỗi: Email '{email}' đã được sử dụng cho một tài khoản khác!")
+            return redirect('trang_quan_ly')
+        # ==================================================
 
         try:
-            # 2. Tạo User mới (Dùng create_user để Django tự động mã hóa mật khẩu)
+            # 2. Tạo User mới (Vượt qua 2 ải trên mới được tới đây)
             new_user = User.objects.create_user(username=username, email=email, password=password)
 
             # 3. Phân quyền dựa trên lựa chọn
@@ -205,11 +252,20 @@ def them_user(request):
             # Lưu các thay đổi về quyền
             new_user.save()
             
+            # 4. KHÚC CODE MỚI: XỬ LÝ GẮN QUẬN CHO NHÂN VIÊN
+            from .models import QuanHuyen, Profile # Đảm bảo đã import
+            profile, created = Profile.objects.get_or_create(user=new_user)
+            if role == 'staff' and quan_huyen_id:
+                quan_duoc_chon = QuanHuyen.objects.get(id=quan_huyen_id)
+                profile.quan_quan_ly = quan_duoc_chon
+                profile.save()
+            
             messages.success(request, f"✅ Đã tạo thành công tài khoản '{username}' với quyền {ten_quyen}!")
         except Exception as e:
             messages.error(request, f"❌ Đã xảy ra lỗi: {str(e)}")
 
     return redirect('trang_quan_ly')
+
 @staff_member_required(login_url='login')
 def khoa_user(request, id):
     if not request.user.is_superuser:
@@ -352,6 +408,7 @@ def luu_phan_anh(request):
             mota = request.POST.get('mo_ta')
             toado = request.POST.get('points_data')
             diachi = request.POST.get('dia_chi') 
+            
             if request.user.is_authenticated:
                 # Lấy mốc thời gian cách đây đúng 1 tiếng
                 mot_gio_truoc = timezone.now() - timedelta(hours=1)
@@ -377,39 +434,52 @@ def luu_phan_anh(request):
                 du_lieu_toa_do=toado,
             )
 
+            # Khối check trùng tên ảnh...
             hinh_anh_list = request.FILES.getlist('hinh_anh')
-            
             for f in hinh_anh_list:
-                # 1. Tách tên gốc và đuôi (VD: 'anh hu.png' -> 'anh hu' và '.png')
                 ten_goc, duoi_file = os.path.splitext(f.name)
-                
-                # 2. Django tự biến khoảng trắng thành gạch dưới, ta phải chuẩn hóa theo nó
                 ten_goc_sach = ten_goc.replace(" ", "_")
-                
-                # 3. Tạo chuỗi tìm kiếm (VD: '/anh_hu'). 
-                # Cách này bắt dính cả 'hien_truong/anh_hu.png' lẫn 'hien_truong/anh_hu_aBc12.png'
                 chuoi_tim_kiem = f"/{ten_goc_sach}"
                 
-                # Dùng icontains thay vì endswith
                 trung_anh_chinh = PhanAnh.objects.filter(hinh_anh__icontains=chuoi_tim_kiem).exists()
                 trung_anh_phu = HinhAnhPhanAnh.objects.filter(hinh_anh__icontains=chuoi_tim_kiem).exists()
 
                 if trung_anh_chinh or trung_anh_phu:
-                    # Chặn đứng ngay lập tức!
                     return JsonResponse({
                         'success': False,
                         'message': f"Tên ảnh '{f.name}' đã bị trùng trên hệ thống. Vui lòng đổi tên file khác!"
                     })
 
-            # --- 3. XỬ LÝ TỌA ĐỘ (POSTGIS) ---
+            # --- 3. XỬ LÝ TỌA ĐỘ (POSTGIS) VÀ TỰ ĐỘNG PHÂN VÙNG (BẢN CẬP NHẬT 2026) ---
             if toado and toado != "[]":
                 try:
                     points_list = json.loads(toado)
                     if len(points_list) > 0:
-                        # Lấy điểm đầu tiên làm tọa độ chính
                         lat = float(points_list[0]['lat'])
                         lng = float(points_list[0]['lng'])
-                        new_pa.vi_tri = Point(lng, lat, srid=4326)
+                        
+                        # 3.1. Tạo điểm sự cố (Point)
+                        diem_su_co = Point(lng, lat, srid=4326)
+                        new_pa.vi_tri = diem_su_co
+                        
+                        # ==============================================================
+                        # 🌟 MA THUẬT AUTO-ASSIGNMENT (Dành cho 22 Quận/Huyện chuẩn)
+                        # ==============================================================
+                        # Hỏi Database: "Điểm này có nằm trong ranh giới của Quận/Huyện nào không?"
+                        # DB sẽ quét qua 22 Polygon (bao gồm cả TP THỦ ĐỨC khổng lồ)
+                        khu_vuc_chua = QuanHuyen.objects.filter(ranh_gioi__contains=diem_su_co).first()
+                        
+                        if khu_vuc_chua:
+                            new_pa.quan_huyen = khu_vuc_chua
+                            print(f"🎯 Đã bắt dính tọa độ vào: {khu_vuc_chua.ten_quan}")
+                        else:
+                            # 3.2. Geofencing: Nếu không thuộc bất kỳ quận nào trong 22 đơn vị HCM
+                            return JsonResponse({
+                                'success': False,
+                                'message': '🚫 Khu vực này nằm ngoài phạm vi quản lý của SafeCity TP.HCM! Vui lòng chọn vị trí trong 22 quận/huyện thành phố.'
+                            })
+                        # ==============================================================
+                        
                 except Exception as e:
                     print("⚠️ Lỗi chuyển đổi PostGIS:", e)
 
@@ -420,46 +490,25 @@ def luu_phan_anh(request):
             # Lưu vào Database lần 1 để lấy ID của Phản ánh
             new_pa.save()
 
-            # --- 4. XỬ LÝ LƯU NHIỀU HÌNH ẢNH (BỘ LỌC THÔNG MINH) ---
-            # Dùng 'getlist' để hốt toàn bộ file gửi lên từ khóa 'hinh_anh'
-            hinh_anh_list = request.FILES.getlist('hinh_anh')
-            
-            
-            # --- MÁY QUÉT X-QUANG (DEBUG TRÊN TERMINAL) ---
-            print("\n" + "="*40)
-            print(f"🚀 THÔNG TIN NHẬN ĐƯỢC:")
-            print(f"👉 Tiêu đề: {tieude}")
-            print(f"👉 Số lượng ảnh nhận được: {len(hinh_anh_list)} file")
-            print("="*40)
-            
+            # --- 4. XỬ LÝ LƯU NHIỀU HÌNH ẢNH ---
             if hinh_anh_list:
-                # A. Lấy tấm đầu tiên làm ảnh đại diện (Hiển thị ngoài danh sách)
                 new_pa.hinh_anh = hinh_anh_list[0]
-                new_pa.save() # Cập nhật lại ảnh đại diện
-                print("✅ 1. Đã lưu Ảnh đại diện.")
+                new_pa.save() 
                 
-                # B. Lưu các tấm còn lại vào Kho ảnh phụ (HinhAnhPhanAnh)
-                # Dùng [1:] để bỏ qua tấm đầu tiên đã lưu ở trên, tránh bị trùng lặp
-                dem_anh_phu = 0
                 for file_anh in hinh_anh_list[1:]:
                     HinhAnhPhanAnh.objects.create(
                         phan_anh=new_pa, 
                         hinh_anh=file_anh
                     )
-                    dem_anh_phu += 1
-                
-                print(f"✅ 2. Đã lưu thêm {dem_anh_phu} ảnh vào kho phụ.")
-                print("="*40 + "\n")
+                print(f"✅ Đã lưu xong phản ánh và {len(hinh_anh_list)} ảnh.")
 
             return JsonResponse({'success': True, 'message': 'Gửi phản ánh thành công!'})
         
         except Exception as e:
-            # In lỗi chi tiết ra màn hình Terminal nếu có sự cố ngầm
             print(f"❌ LỖI HỆ THỐNG: {str(e)}")
             return JsonResponse({'success': False, 'message': str(e)})
 
     return JsonResponse({'success': False, 'message': 'Yêu cầu không hợp lệ!'})
-
 # 8. TRANG HỒ SƠ CÁ NHÂN (ĐÃ SỬA: LỌC ĐÚNG CỘT nguoi_gui)
 @login_required
 def profile(request):
@@ -525,23 +574,50 @@ def cap_nhat_trang_thai(request, id_phan_anh, trang_thai_moi):
     return redirect('quan_ly_hien_truong')
 
 def api_get_points(request):
-    # Chỉ lấy những điểm chưa bị xóa
-    danh_sach = PhanAnh.objects.filter(da_xoa=False).exclude(trang_thai='cho_duyet')
+    user_dang_nhap = request.user
+    
+    # 1. BỘ LỌC PHÂN QUYỀN (Giữ nguyên logic cực xịn)
+    if user_dang_nhap.is_superuser:
+        danh_sach = PhanAnh.objects.filter(da_xoa=False)
+    else:
+        try:
+            quan_duoc_giao = user_dang_nhap.profile.quan_quan_ly
+            if quan_duoc_giao:
+                danh_sach = PhanAnh.objects.filter(da_xoa=False, quan_huyen=quan_duoc_giao)
+            else:
+                danh_sach = PhanAnh.objects.none()
+        except:
+            danh_sach = PhanAnh.objects.none()
+
+    # 2. XUẤT DỮ LIỆU RA JSON (Sử dụng trực tiếp sức mạnh PostGIS)
     data = []
     for item in danh_sach:
-        lat, lng = 0, 0
         try:
-            if item.du_lieu_toa_do:
-                # Dùng json.loads vì tọa độ của bạn lưu dạng [{"lat":..., "lng":...}]
-                coords = json.loads(item.du_lieu_toa_do)
-                if coords:
-                    lat, lng = coords[0]['lat'], coords[0]['lng']
-        except: pass
-        data.append({
-            'id': item.id, 'title': item.tieu_de, 'lat': lat, 'lng': lng, 
-            'status': item.trang_thai, 'image_url': item.hinh_anh.url if item.hinh_anh else '', 
-            'detail_url': f"/chi-tiet/{item.id}/"
-        })
+            # Chỉ lấy những bài đã được lưu tọa độ PostGIS thành công
+            if item.vi_tri:
+                lat = item.vi_tri.y # PostGIS y là Vĩ độ (Latitude)
+                lng = item.vi_tri.x # PostGIS x là Kinh độ (Longitude)
+                
+                # Xử lý ảnh cực kỳ an toàn, bao không crash hệ thống
+                img_url = ""
+                if item.hinh_anh and hasattr(item.hinh_anh, 'url'):
+                    try:
+                        img_url = item.hinh_anh.url
+                    except ValueError:
+                        pass # Nếu rỗng thì bỏ qua, xài chuỗi rỗng
+                        
+                data.append({
+                    'id': item.id, 
+                    'title': item.tieu_de, 
+                    'lat': lat, 
+                    'lng': lng, 
+                    'status': item.trang_thai, 
+                    'image_url': img_url, 
+                    'detail_url': f"/chi-tiet/{item.id}/"
+                })
+        except Exception as e:
+            print(f"⚠️ Lỗi xuất dữ liệu ở bài #{item.id}: {e}")
+            
     return JsonResponse(data, safe=False)
 
 
@@ -751,3 +827,58 @@ def gioi_thieu_view(request):
     # Lấy bản ghi giới thiệu mới nhất
     info = GioiThieu.objects.first() 
     return render(request, 'maps/gioi_thieu.html', {'info': info})
+
+# API MỚI: TRẢ VỀ DỮ LIỆU RANH GIỚI POLYGON CHO BẢN ĐỒ ADMIN
+@staff_member_required(login_url='login')
+def api_get_ranh_gioi(request):
+    user_dang_nhap = request.user
+    
+    # 1. Lọc danh sách quận theo quyền hạn
+    if user_dang_nhap.is_superuser:
+        ds_quan = QuanHuyen.objects.all()
+    else:
+        try:
+            quan_duoc_giao = user_dang_nhap.profile.quan_quan_ly
+            ds_quan = QuanHuyen.objects.filter(id=quan_duoc_giao.id) if quan_duoc_giao else QuanHuyen.objects.none()
+        except:
+            ds_quan = QuanHuyen.objects.none()
+
+    # 2. BUILD GEOJSON KÈM THỐNG KÊ
+    features = []
+    for q in ds_quan:
+        if q.ranh_gioi:
+            # --- ĐOẠN TÍNH TOÁN SỐ LIỆU ---
+            tong_so = PhanAnh.objects.filter(quan_huyen=q, da_xoa=False).count()
+            cho_duyet = PhanAnh.objects.filter(quan_huyen=q, da_xoa=False, trang_thai='cho_duyet').count()
+            da_xong = PhanAnh.objects.filter(quan_huyen=q, da_xoa=False, trang_thai='da_xu_ly').count()
+
+            # --- TÍNH NĂNG MỚI: TÌM NGƯỜI QUẢN LÝ ---
+            # Lọc ra những User có profile gán với quận này
+            nguoi_quan_ly = User.objects.filter(profile__quan_quan_ly=q, is_active=True).values_list('username', flat=True)
+            if nguoi_quan_ly:
+                chuoi_quan_ly = ", ".join(nguoi_quan_ly) # Nếu có 2 người cùng quản lý 1 quận thì nối tên lại
+            else:
+                chuoi_quan_ly = "Chưa phân công"
+
+            features.append({
+                "type": "Feature",
+                "geometry": json.loads(q.ranh_gioi.geojson), 
+                "properties": {
+                    "id": q.id,
+                    "ten_quan": q.ten_quan,
+                    "mau_sac": q.mau_sac,
+                    "nguoi_quan_ly": chuoi_quan_ly, # Gửi thêm cái tên này ra cho Frontend
+                    "thong_ke": {
+                        "tong": tong_so,
+                        "cho_duyet": cho_duyet,
+                        "hoan_thanh": da_xong
+                    }
+                }
+            })
+            
+    geojson_dict = {
+        "type": "FeatureCollection",
+        "features": features
+    }
+    
+    return HttpResponse(json.dumps(geojson_dict), content_type='application/json')

@@ -6,6 +6,8 @@
     <title>Trang Quản Lý | Urban Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="bg-light m-0 p-0">
 
@@ -22,6 +24,12 @@
                 <li class="nav-item" role="presentation">
                     <a class="nav-link active" data-bs-toggle="tab" href="#phan-anh" role="tab" aria-selected="true">
                         <i class="fa-solid fa-map-location-dot me-1"></i> Phản Ánh Sự Cố
+                    </a>
+                </li>
+
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link text-success fw-bold" data-bs-toggle="tab" href="#ban-do-khu-vuc" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-map-marked-alt me-1"></i> Bản Đồ Lãnh Thổ
                     </a>
                 </li>
                 
@@ -86,13 +94,39 @@
         </div>
     </div>
 </nav>
-
+{% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-warning{% endif %} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
 <div class="container-fluid px-4">
     <div class="tab-content mt-4" id="adminTabContent">
-
+        <div class="tab-pane fade" id="ban-do-khu-vuc" role="tabpanel">
+            <h4 class="mb-3 text-success"><i class="fa-solid fa-map-marked-alt"></i> Bản Đồ Phân Vùng Lãnh Thổ</h4>
+            <div class="card shadow-sm border-success">
+                <div class="card-body p-0">
+                    <div id="adminMap" style="height: 650px; width: 100%; border-radius: 5px; z-index: 1;"></div>
+                </div>
+            </div>
+        </div>
         <div class="tab-pane fade show active" id="phan-anh" role="tabpanel">
             <h4 class="mb-3 text-primary"><i class="fa-solid fa-map-location-dot"></i> Danh sách Phản Ánh Sự Cố</h4>
-            
+            <div class="mb-4">
+                {% if user.is_superuser %}
+                    <span class="badge bg-danger p-2 fs-6 shadow-sm">
+                        <i class="fa-solid fa-earth-asia me-1"></i> Admin Tổng
+                    </span>
+                {% else %}
+                    <span class="badge bg-success p-2 fs-6 shadow-sm">
+                        <i class="fa-solid fa-map-pin me-1"></i> Trực thuộc: {{ user.profile.quan_quan_ly.ten_quan|default:"Chưa được phân công khu vực!" }}
+                    </span>
+                {% endif %}
+            </div>
             <div class="card shadow-sm mb-3 border-primary">
                 <div class="card-body py-2">
                     <form method="GET" action="" id="filterForm">
@@ -198,7 +232,13 @@
                             </tr>
                             {% endif %}
                             {% empty %}
-                            <tr><td colspan="8" class="text-center text-muted">Chưa có phản ánh nào.</td></tr>
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-5">
+                                    <i class="fa-solid fa-shield-cat fa-4x text-success opacity-50 mb-3"></i>
+                                    <h5>Tuyệt vời!</h5>
+                                    <p class="mb-0">Khu vực <b>{{ user.profile.quan_quan_ly.ten_quan|default:"của bạn" }}</b> hiện đang rất bình yên, chưa có sự cố nào!</p>
+                                </td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -298,86 +338,132 @@
         {% if user.is_superuser %}
         <div class="tab-pane fade" id="tai-khoan" role="tabpanel">
             
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="text-success m-0"><i class="fa-solid fa-users"></i> Danh sách Tài khoản Người dùng</h4>
-                <button type="button" class="btn btn-success btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalThemUser">
-                    <i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản
-                </button>
-            </div>
-
-            <div class="card shadow-sm mb-3 border-success">
-                <div class="card-body py-2">
-                    <form method="GET" action="" id="filterRoleForm">
-                        <div class="row align-items-center">
-                            <div class="col-md-auto">
-                                <label class="fw-bold small mb-0 text-muted">Lọc theo quyền hạn:</label>
-                            </div>
-                            <div class="col-md-4">
-                                <select class="form-select form-select-sm border-success" name="filter_role" onchange="this.form.submit()">
-                                    <option value="" {% if not filter_role %}selected{% endif %}>🌍 Tất cả tài khoản</option>
-                                    <option value="admin" {% if filter_role == 'admin' %}selected{% endif %}>👑 Admin Tổng</option>
-                                    <option value="staff" {% if filter_role == 'staff' %}selected{% endif %}>🛠️ Nhân viên</option>
-                                    <option value="user" {% if filter_role == 'user' %}selected{% endif %}>👤 Người dùng thường</option>
-                                </select>
-                            </div>
-                        </div>
-                    </form>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="text-success m-0"><i class="fa-solid fa-users-gear"></i> Quản trị Nhân sự & Người dùng</h4>
+                <div>
+                    <button type="button" class="btn btn-success btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalThemUser">
+                        <i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản Mới
+                    </button>
                 </div>
             </div>
 
-            <div class="card shadow-sm mb-5">
-                <div class="card-body overflow-auto">
-                    <table class="table table-hover align-middle text-nowrap">
-                        <thead class="table-success text-nowrap">
-                            <tr>
-                                <th>ID</th>
-                                <th>Tên đăng nhập</th>
-                                <th>Email</th>
-                                <th>Quyền hạn</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for u in ds_user %}
-                            <tr>
-                                <td>#{{ u.id }}</td>
-                                <td class="fw-bold">{{ u.username }}</td>
-                                <td>{{ u.email|default:"<span class='text-muted'>Không có email</span>"|safe }}</td>
-                                <td>
-                                    {% if u.is_superuser %}
-                                        <span class="badge bg-danger">Admin Tổng</span>
-                                    {% elif u.is_staff %}
-                                        <span class="badge bg-warning text-dark">Nhân viên</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Người dùng thường</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if u.is_active %}
-                                        <span class="text-success fw-bold"><i class="fa-solid fa-circle-check"></i> Hoạt động</span>
-                                    {% else %}
-                                        <span class="text-danger fw-bold"><i class="fa-solid fa-ban"></i> Bị khóa</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if u.is_superuser %}
-                                        <span class="badge bg-light text-muted border"><i class="fa-solid fa-shield"></i> Quyền tối cao</span>
-                                    {% else %}
-                                        <a href="{% url 'khoa_user' u.id %}" class="btn btn-warning btn-sm" title="Khóa / Mở khóa">
-                                            <i class="fa-solid fa-lock"></i>
-                                        </a>
-                                        <a href="{% url 'xoa_user' u.id %}" class="btn btn-danger btn-sm" title="Xóa tài khoản" onclick="return confirm('Chắc chắn muốn xóa vĩnh viễn User này không?');">
-                                            <i class="fa-solid fa-user-xmark"></i>
-                                        </a>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="6" class="text-center text-muted">Chưa có người dùng nào.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card shadow-sm border-primary">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fs-6"><i class="fa-solid fa-user-tie"></i> Nhân sự Quản lý (Admin/Staff)</h5>
+                        </div>
+                        <div class="card-body overflow-auto p-0">
+                            <table class="table table-hover align-middle text-nowrap mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">ID</th>
+                                        <th>Tên đăng nhập</th>
+                                        <th>Email liên hệ</th>
+                                        <th>Quyền hạn</th>
+                                        <th><i class="fa-solid fa-map-location-dot"></i> Khu vực quản lý</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-center">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in ds_user %}
+                                        {% if u.is_superuser or u.is_staff %}
+                                        <tr>
+                                            <td class="ps-3 text-muted">#{{ u.id }}</td>
+                                            <td class="fw-bold text-primary">{{ u.username }}</td>
+                                            
+                                            <td>{{ u.email|default:"<span class='text-muted fst-italic'>Không có email</span>"|safe }}</td>
+                                            
+                                            <td>
+                                                {% if u.is_superuser %}
+                                                    <span class="badge bg-danger"><i class="fa-solid fa-crown"></i> Admin Tổng</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning text-dark"><i class="fa-solid fa-user-shield"></i> Nhân viên</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if u.is_superuser %}
+                                                    <span class="badge bg-dark">Toàn Thành Phố</span>
+                                                {% elif u.profile and u.profile.quan_quan_ly %}
+                                                    <span class="badge border border-primary text-primary bg-light">{{ u.profile.quan_quan_ly.ten_quan }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary text-light">Chưa phân công</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if u.is_active %}
+                                                    <span class="text-success fw-bold small"><i class="fa-solid fa-circle-check"></i> Hoạt động</span>
+                                                {% else %}
+                                                    <span class="text-danger fw-bold small"><i class="fa-solid fa-ban"></i> Bị khóa</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if u.is_superuser %}
+                                                    <span class="badge bg-light text-muted border" style="font-size: 11px;"><i class="fa-solid fa-shield"></i> Không thể sửa</span>
+                                                {% else %}
+                                                    <a href="{% url 'khoa_user' u.id %}" class="btn btn-outline-warning btn-sm py-0" title="Khóa/Mở khóa">
+                                                        <i class="fa-solid fa-lock"></i>
+                                                    </a>
+                                                    <a href="{% url 'xoa_user' u.id %}" class="btn btn-outline-danger btn-sm py-0" title="Xóa" onclick="return confirm('Xóa vĩnh viễn nhân viên này?');">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </a>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card shadow-sm border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0 fs-6"><i class="fa-solid fa-users"></i> Người dùng Cộng đồng</h5>
+                        </div>
+                        <div class="card-body overflow-auto p-0">
+                            <table class="table table-hover align-middle text-nowrap mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">ID</th>
+                                        <th>Tên đăng nhập</th>
+                                        <th>Email liên hệ</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-center">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in ds_user %}
+                                        {% if not u.is_superuser and not u.is_staff %}
+                                        <tr>
+                                            <td class="ps-3 text-muted">#{{ u.id }}</td>
+                                            <td class="fw-bold">{{ u.username }}</td>
+                                            <td>{{ u.email|default:"<span class='text-muted fst-italic'>Không có</span>"|safe }}</td>
+                                            <td>
+                                                {% if u.is_active %}
+                                                    <span class="text-success fw-bold small"><i class="fa-solid fa-circle-check"></i> Hoạt động</span>
+                                                {% else %}
+                                                    <span class="text-danger fw-bold small"><i class="fa-solid fa-ban"></i> Bị khóa</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="{% url 'khoa_user' u.id %}" class="btn btn-outline-warning btn-sm py-0" title="Khóa/Mở khóa">
+                                                    <i class="fa-solid fa-lock"></i>
+                                                </a>
+                                                <a href="{% url 'xoa_user' u.id %}" class="btn btn-outline-danger btn-sm py-0" title="Xóa" onclick="return confirm('Xóa vĩnh viễn người dùng này?');">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -612,14 +698,27 @@
                         <label class="form-label fw-bold text-muted small">Mật khẩu <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="password" required placeholder="Nhập mật khẩu cấp phát">
                     </div>
+                    
                     <div class="mb-3">
                         <label class="form-label fw-bold text-muted small">Cấp bậc / Phân quyền <span class="text-danger">*</span></label>
-                        <select class="form-select border-success" name="role" required>
+                        <select class="form-select border-success" name="role" id="selectRole" required onchange="toggleKhuVuc()">
                             <option value="user" selected>👤 Người dùng thường (Chỉ gửi & xem phản ánh)</option>
-                            <option value="staff">🛠️ Nhân viên (Duyệt bài, xử lý sự cố)</option>
+                            <option value="staff">🛠️ Nhân viên (Cần phân công khu vực)</option>
                             <option value="admin">👑 Admin Tổng (Toàn quyền hệ thống)</option>
                         </select>
                     </div>
+
+                    <div class="mb-3" id="divKhuVuc" style="display: none;">
+                        <label class="form-label fw-bold text-success small">Phân công Khu vực quản lý <span class="text-danger">*</span></label>
+                        <select class="form-select border-success" name="quan_huyen">
+                            <option value="">-- Chọn quận/huyện quản lý --</option>
+                            {% for q in ds_quan_huyen %}
+                                <option value="{{ q.id }}">{{ q.ten_quan }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted fst-italic">Nếu chưa có quận, hãy bấm "Thêm Khu Vực" ở ngoài trước.</small>
+                    </div>
+
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy bỏ</button>
@@ -629,5 +728,145 @@
         </div>
     </div>
 </div>
+
+<script>
+    function toggleKhuVuc() {
+        var role = document.getElementById("selectRole").value;
+        // Nếu chọn Nhân viên (staff) thì hiện ô chọn Quận, ngược lại thì ẩn
+        document.getElementById("divKhuVuc").style.display = (role === 'staff') ? "block" : "none";
+    }
+</script>
+<div class="modal fade" id="modalThemKhuVuc" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg">
+            <form method="POST" action="{% url 'them_khu_vuc' %}">
+                {% csrf_token %}
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-map"></i> Thêm Khu Vực Mới</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <label class="form-label fw-bold text-muted small">Tên Quận / Huyện</label>
+                    <input type="text" class="form-control border-success" name="ten_quan" required placeholder="VD: Quận 1, Quận Bình Thạnh...">
+                </div>
+                <div class="modal-footer bg-light p-2">
+                    <button type="submit" class="btn btn-success btn-sm w-100"><i class="fa-solid fa-plus"></i> Tạo nhanh</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var adminMap = null; // Biến lưu bản đồ
+
+// Lắng nghe khi người dùng bấm vào Tab "Bản Đồ Lãnh Thổ"
+var mapTabEl = document.querySelector('a[href="#ban-do-khu-vuc"]');
+mapTabEl.addEventListener('shown.bs.tab', function (event) {
+    
+    // Nếu bản đồ chưa được vẽ thì mới vẽ
+    if (adminMap === null) {
+        // 1. Khởi tạo bản đồ ở tâm Sài Gòn
+        adminMap = L.map('adminMap').setView([10.762622, 106.660172], 11);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(adminMap);
+
+        // 2. GỌI API ĐỂ VẼ RANH GIỚI VÀ HIỂN THỊ THỐNG KÊ
+        fetch('/api/ranh-gioi/')
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: function (feature) {
+                        return {
+                            color: feature.properties.mau_sac,     // Viền có màu
+                            fillColor: feature.properties.mau_sac, // Nền có màu
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.3 // Độ trong suốt
+                        };
+                    },
+                    onEachFeature: function (feature, layer) {
+                        var stats = feature.properties.thong_ke || {tong: 0, cho_duyet: 0, hoan_thanh: 0};
+                        // Lấy tên người quản lý từ API (Bước 1 mình vừa làm)
+                        var manager = feature.properties.nguoi_quan_ly || "Chưa phân công"; 
+                        
+                        var popupContent = `
+                            <div style="min-width: 190px;">
+                                <h6 class="text-primary border-bottom pb-2 mb-2"><i class="fa-solid fa-map-pin"></i> ${feature.properties.ten_quan}</h6>
+                                
+                                <div class="mb-2 pb-2 border-bottom" style="font-size: 12px;">
+                                    <span class="text-muted"><i class="fa-solid fa-user-shield"></i> Phụ trách:</span><br>
+                                    <b class="${manager === 'Chưa phân công' ? 'text-danger' : 'text-success'}">${manager}</b>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between mb-1" style="font-size: 13px;">
+                                    <span>Tổng số vụ:</span> <span class="fw-bold">${stats.tong}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1 text-danger" style="font-size: 13px;">
+                                    <span>🔴 Đang chờ:</span> <span class="fw-bold">${stats.cho_duyet}</span>
+                                </div>
+                                <div class="d-flex justify-content-between text-success" style="font-size: 13px;">
+                                    <span>🟢 Hoàn thành:</span> <span class="fw-bold">${stats.hoan_thanh}</span>
+                                </div>
+                                <hr class="my-2">
+                                <p class="text-muted mb-0" style="font-size: 11px; font-style: italic;">* Click để xem chi tiết danh sách quận</p>
+                            </div>
+                        `;
+                        
+                        layer.bindPopup(popupContent);
+                        
+                        // Hiệu ứng hover sáng lên
+                        layer.on({
+                            mouseover: function(e) {
+                                e.target.setStyle({ fillOpacity: 0.6, weight: 3 });
+                            },
+                            mouseout: function(e) {
+                                e.target.setStyle({ fillOpacity: 0.3, weight: 2 });
+                            }
+                        });
+                    }
+                }).addTo(adminMap);
+
+                // --- 🌟 BƯỚC MỚI: ĐỔ CÁC CHẤM SỰ CỐ (MARKERS) LÊN BẢN ĐỒ ---
+                fetch('/api/get-points/')
+                    .then(res => res.json())
+                    .then(points => {
+                        points.forEach(p => {
+                            if (p.lat && p.lng) {
+                                // Chọn màu: Xanh cho đã xong, Đỏ cho đang chờ/đang xử lý
+                                var markerColor = (p.status === 'da_xu_ly') ? "#198754" : "#dc3545";
+                                
+                                var dot = L.circleMarker([p.lat, p.lng], {
+                                    radius: 6,
+                                    fillColor: markerColor,
+                                    color: "#ffffff",
+                                    weight: 2,
+                                    opacity: 1,
+                                    fillOpacity: 0.9
+                                }).addTo(adminMap);
+
+                                // Popup cho từng điểm sự cố
+                                dot.bindPopup(`
+                                    <div class="text-center">
+                                        ${p.image_url ? `<img src="${p.image_url}" class="rounded mb-2" style="width:120px; height:80px; object-fit:cover;">` : ''}
+                                        <div class="fw-bold small">${p.title}</div>
+                                        <span class="badge ${p.status === 'da_xu_ly' ? 'bg-success' : 'bg-danger'} mb-2" style="font-size: 9px;">${p.status}</span>
+                                        <br><a href="${p.detail_url}" class="btn btn-primary btn-sm text-white px-3" style="font-size: 10px;">Chi tiết</a>
+                                    </div>
+                                `);
+                            }
+                        });
+                    });
+            })
+            .catch(error => console.log('Lỗi tải dữ liệu ranh giới:', error));
+    } else {
+        // Nếu bản đồ đã vẽ rồi, xài trick này để nó không bị lỗi hiển thị xám góc
+        adminMap.invalidateSize();
+    }
+});
+</script>
 </body>
 </html>

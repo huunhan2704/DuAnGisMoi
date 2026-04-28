@@ -4,6 +4,19 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from ckeditor_uploader.fields import RichTextUploadingField
+
+# 0. MODEL QUẬN HUYỆN (Danh mục khu vực)
+class QuanHuyen(models.Model):
+    ten_quan = models.CharField(max_length=100, verbose_name="Tên Khu Vực")
+    ranh_gioi = models.MultiPolygonField(srid=4326, verbose_name="Ranh giới", null=True, blank=True)
+    mau_sac = models.CharField(max_length=7, default="#3388ff", help_text="Mã màu Hex (VD: #3388ff)")
+
+    def __str__(self):
+        return self.ten_quan
+
+    class Meta:
+        verbose_name = "Quận/Huyện"
+        verbose_name_plural = "Danh sách Quận/Huyện"
 # 1. MODEL PHẢN ÁNH
 class PhanAnh(models.Model):
     # 1. Tiêu đề
@@ -12,6 +25,8 @@ class PhanAnh(models.Model):
     # 2. Mô tả
     mo_ta = models.TextField(verbose_name="Mô tả chi tiết")
     dia_chi = models.CharField(max_length=200, blank=True, null=True, verbose_name="Địa chỉ/Tên đường")
+    #  Phản ánh này thuộc Quận nào
+    quan_huyen = models.ForeignKey(QuanHuyen, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Thuộc Quận/Huyện")
     # 3. Tọa độ
     du_lieu_toa_do = models.TextField(verbose_name="Danh sách tọa độ")
     
@@ -49,9 +64,14 @@ class PhanAnh(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     so_dien_thoai = models.CharField(max_length=15, blank=True, null=True, verbose_name="Số điện thoại")
-    avatar = models.ImageField(upload_to='avatars/', default='avatars/default.png', blank=True, null=True, verbose_name="Ảnh đại diện")
+    avatar = models.ImageField(upload_to='avatars/', default='avatars/default.png', blank=True, null=True, verbose_name="Ảnh đại diện") 
+    # Cấp quyền nhân viên quản lý quận nào
+    quan_quan_ly = models.ForeignKey(QuanHuyen, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Quận/Huyện quản lý (Dành cho nhân viên)")
 
     def __str__(self):
+        # Nâng cấp hàm in ra cho dễ nhìn trong Admin
+        if self.quan_quan_ly:
+            return f"Profile của {self.user.username} (Quản lý: {self.quan_quan_ly.ten_quan})"
         return f"Profile của {self.user.username}"
 
 # 3. SIGNAL TỰ ĐỘNG (ĐÃ SỬA LỖI ADMIN CŨ)
