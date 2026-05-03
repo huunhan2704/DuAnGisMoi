@@ -14,6 +14,7 @@ from datetime import timedelta
 from django.utils import timezone
 import csv
 import os
+import openpyxl
 from django.http import HttpResponse
 import feedparser
 from datetime import datetime
@@ -21,6 +22,7 @@ from bs4 import BeautifulSoup
 from django.contrib.auth.decorators import login_required
 from .models import HoTro
 from django.contrib import messages
+from django.shortcuts import redirect
 from django.shortcuts import render
 from django.core.mail import send_mail
 from django.contrib.admin.views.decorators import staff_member_required
@@ -906,3 +908,73 @@ def xoa_tat_ca_thung_rac(request):
             messages.error(request, "Lỗi: Không xác định được hồ sơ người dùng.")
             
     return redirect('trang_quan_ly')
+
+# --- HÀM 1: XUẤT EXCEL ---
+def xuat_excel_lich_su(request):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Lich_Su_Xu_Ly"
+    
+    # Lấy ngày giờ thực tế
+    bay_gio = datetime.now()
+    ten_file = f"bao_cao_phan_tich_{bay_gio.strftime('%d_%m_%Y')}.xlsx"
+    
+    # 1. Tạo hàng tiêu đề
+    headers = ['ID', 'Người gửi', 'Tiêu đề', 'Địa chỉ', 'Thời gian gửi', 'Trạng thái']
+    ws.append(headers)
+
+    MA_TRANG_THAI = 'da_xu_ly' 
+    
+    user_dang_nhap = request.user
+    
+    if user_dang_nhap.is_superuser:
+        # Admin Tổng: Lấy hết toàn bộ thành phố
+        lich_su = PhanAnh.objects.filter(trang_thai=MA_TRANG_THAI, da_xoa=False).order_by('-id')
+    else:
+        # Nhân viên: Chỉ lấy đúng Quận và Chuyên môn
+        profile = user_dang_nhap.profile
+        lich_su = PhanAnh.objects.filter(
+            trang_thai=MA_TRANG_THAI, 
+            da_xoa=False,
+            quan_huyen=profile.quan_quan_ly,
+            loai_su_co=profile.chuyen_mon
+        ).order_by('-id')
+
+    # ==========================================
+
+    # 2. Đổ dữ liệu vào file Excel
+    for pa in lich_su:
+        thoi_gian_str = pa.thoi_gian.strftime('%d/%m/%Y %H:%M') if pa.thoi_gian else ""
+        ws.append([
+            f"#{pa.id}", 
+            pa.nguoi_gui.username if pa.nguoi_gui else "Ẩn danh",
+            pa.tieu_de,
+            pa.dia_chi,
+            thoi_gian_str,
+            "Đã xử lý xong"
+        ])
+
+    # 3. Thêm khu vực chữ ký ở góc dưới
+    last_row = ws.max_row + 3
+    profile = request.user.profile
+    
+    ws.cell(row=last_row, column=4, value=f"Ngày xuất: {bay_gio.strftime('%d/%m/%Y %H:%M')}")
+    ten_quan = profile.quan_quan_ly.ten_quan if profile.quan_quan_ly else "Toàn thành phố"
+    ws.cell(row=last_row + 1, column=4, value=f"Khu vực quản lý: {ten_quan}")
+    ws.cell(row=last_row + 2, column=4, value=f"Chuyên môn: {profile.get_chuyen_mon_display()}")
+    ws.cell(row=last_row + 4, column=4, value="Người lập biểu")
+    ws.cell(row=last_row + 5, column=4, value="(Ký và ghi rõ họ tên)")
+    ws.cell(row=last_row + 7, column=4, value=request.user.get_full_name() or request.user.username)
+
+    # 4. Trả về file tải xuống
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{ten_file}"'
+    wb.save(response)
+    return response
+
+# --- HÀM 2: XÓA TẤT CẢ LỊCH SỬ ---
+def xoa_tat_ca_lich_su(request):
+    # Thay vì xóa vĩnh viễn, mình đổi trạng thái da_xoa=True để ném vào thùng rác cho an toàn
+    PhanAnh.objects.filter(trang_thai='da_xu_ly', da_xoa=False).update(da_xoa=True)
+    messages.success(request, "Đã dọn dẹp sạch sẽ toàn bộ lịch sử!")
+    return redirect('trang_quan_ly') # Đổi tên view này lại cho đúng với tên url trang quản lý của ông nếu cần

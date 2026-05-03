@@ -508,7 +508,22 @@
         {% endif %}
 
         <div class="tab-pane fade" id="lich-su" role="tabpanel">
-            <h4 class="mb-3 text-secondary"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử Phản Ánh Đã Xử Lý</h4>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+            <!-- Bên trái: Tiêu đề y như cũ -->
+            <h4 class="m-0 text-secondary">
+                <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử Phản Ánh Đã Xử Lý
+            </h4>
+            
+            <!-- Bên phải: 2 nút bấm -->
+            <div>
+                <a href="{% url 'xuat_excel_lich_su' %}" class="btn btn-success btn-sm me-2">
+                    <i class="fa-solid fa-file-excel"></i> Xuất Excel
+                </a>
+                <button onclick="xacNhanXoaLichSu()" class="btn btn-danger btn-sm">
+                    <i class="fa-solid fa-trash-can"></i> Xóa tất cả
+                </button>
+            </div>
+        </div>
             <div class="card shadow-sm mb-5">
                 <div class="card-body overflow-auto">
                     <table class="table table-hover align-middle text-nowrap">
@@ -950,6 +965,13 @@ mapTabEl.addEventListener('shown.bs.tab', function (event) {
         adminMap.invalidateSize();
     }
 });
+</script>
+<script>
+    function xacNhanXoaLichSu() {
+        if (confirm("⚠️ Bạn có chắc chắn muốn dọn dẹp TOÀN BỘ lịch sử đã xử lý không? Dữ liệu sẽ được chuyển vào Thùng rác.")) {
+            window.location.href = "{% url 'xoa_tat_ca_lich_su' %}";
+        }
+    }
 </script>
 </body>
 </html>

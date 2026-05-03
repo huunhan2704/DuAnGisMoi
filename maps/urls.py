@@ -81,6 +81,8 @@ urlpatterns = [
     path('them-khu-vuc/', views.them_khu_vuc, name='them_khu_vuc'),
     path('api/ranh-gioi/', views.api_get_ranh_gioi, name='api_get_ranh_gioi'),
     path('api/get-points/', views.api_get_points, name='api_get_points'),
+    path('quan-ly/xuat-excel/', views.xuat_excel_lich_su, name='xuat_excel_lich_su'),
+    path('quan-ly/xoa-lich-su/', views.xoa_tat_ca_lich_su, name='xoa_tat_ca_lich_su'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
