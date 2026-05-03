@@ -547,7 +547,17 @@
         </div>
 
         <div class="tab-pane fade" id="thung-rac" role="tabpanel">
-            <h4 class="mb-3 text-warning"><i class="fa-solid fa-trash-can"></i> Thùng Rác (Tự động xóa sau 7 ngày)</h4>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-warning m-0"><i class="fa-solid fa-trash-can"></i> Thùng Rác (Tự động xóa sau 7 ngày)</h4>
+                {% if ds_thung_rac %}
+                <!-- Nút Xóa Tất Cả (Chỉ hiện khi có rác) -->
+                <a href="{% url 'xoa_tat_ca_thung_rac' %}" class="btn btn-danger btn-sm shadow-sm" 
+                   onclick="return confirm('⚠️ CẢNH BÁO: Bạn có CHẮC CHẮN muốn dọn sạch toàn bộ thùng rác không? Hành động này sẽ xóa vĩnh viễn và không thể hoàn tác!');">
+                    <i class="fa-solid fa-dumpster-fire me-1"></i> Dọn Sạch Tất Cả
+                </a>
+                {% endif %}
+            </div>
+
             <div class="card shadow-sm mb-5 border-warning">
                 <div class="card-body overflow-auto">
                     <table class="table table-hover align-middle text-nowrap">
@@ -571,7 +581,7 @@
                                     <a href="{% url 'khoi_phuc_phan_anh' item.id %}" class="btn btn-success btn-sm" title="Khôi phục lại">
                                         <i class="fa-solid fa-trash-arrow-up"></i> Khôi phục
                                     </a>
-                                    <a href="{% url 'xoa_vinh_vien_phan_anh' item.id %}" class="btn btn-dark btn-sm" title="Xóa vĩnh viễn ngay lập tức" onclick="return confirm('Hành động này không thể hoàn tác. Chắc chắn xóa?');">
+                                    <a href="{% url 'xoa_vinh_vien' item.id %}" class="btn btn-dark btn-sm" title="Xóa vĩnh viễn ngay lập tức" onclick="return confirm('Hành động này không thể hoàn tác. Chắc chắn xóa?');">
                                         <i class="fa-solid fa-radiation"></i> Xóa sạch
                                     </a>
                                 </td>

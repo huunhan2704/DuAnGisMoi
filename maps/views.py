@@ -882,3 +882,24 @@ def api_get_ranh_gioi(request):
     }
     
     return HttpResponse(json.dumps(geojson_dict), content_type='application/json')
+@staff_member_required(login_url='login')
+def xoa_tat_ca_thung_rac(request):
+    user_dang_nhap = request.user
+    
+    if user_dang_nhap.is_superuser:
+        # 1. Admin Tổng: Xóa toàn bộ thùng rác của toàn thành phố
+        PhanAnh.objects.filter(da_xoa=True).delete()
+        messages.success(request, "🗑️ Đã dọn sạch vĩnh viễn TOÀN BỘ thùng rác trên hệ thống!")
+    else:
+        # 2. Nhân viên: Chỉ dọn sạch thùng rác thuộc quận/huyện mình quản lý
+        try:
+            quan_duoc_giao = user_dang_nhap.profile.quan_quan_ly
+            if quan_duoc_giao:
+                PhanAnh.objects.filter(da_xoa=True, quan_huyen=quan_duoc_giao).delete()
+                messages.success(request, f"🗑️ Đã dọn sạch thùng rác thuộc {quan_duoc_giao.ten_quan}!")
+            else:
+                messages.error(request, "Lỗi: Bạn chưa được phân công khu vực quản lý.")
+        except:
+            messages.error(request, "Lỗi: Không xác định được hồ sơ người dùng.")
+            
+    return redirect('trang_quan_ly')
