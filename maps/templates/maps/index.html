@@ -209,28 +209,55 @@
                             <li class="text-center text-muted fst-italic small py-2" id="empty-msg"><i class="fa-solid fa-computer-mouse me-1"></i> Click lên bản đồ để chọn vị trí</li>
                         </ul>
                     </div>
-                </div>
-                <div class="mb-3"> <label class="form-label fw-bold small text-secondary">Tiêu đề</label>
-                <select id="tieu_de" class="form-select w-100"> <option value="" selected disabled>-- Chọn loại sự cố --</option>
-                    <optgroup label="Hạ tầng & Giao thông">
-                        <option value="Đường hư / Ổ gà">Đường hư / Ổ gà</option>
-                        <option value="Nắp cống hư hỏng">Nắp cống hư hỏng / Mất nắp</option>
-                        <option value="Biển báo hư hỏng">Biển báo hư hỏng</option>
+
+                <div class="mb-3"> 
+                <label class="form-label fw-bold small text-secondary">Loại sự cố & Chuyên mục</label>
+                <select name="du_lieu_su_co" class="form-select w-100" required> 
+                    <option value="" selected disabled>-- Chọn chính xác loại sự cố --</option>
+                    <!-- 1. AN NINH & CỨU NẠN -->
+                    <optgroup label="An ninh & Cứu nạn">
+                        <option value="an_ninh|Sự cố cháy nổ">Sự cố cháy nổ</option>
+                        <option value="an_ninh|Tai nạn giao thông">Tai nạn giao thông</option>
+                        <option value="an_ninh|Yêu cầu cứu nạn">Yêu cầu cứu nạn</option>
                     </optgroup>
-                    <optgroup label="Cây xanh & Môi trường">
-                        <option value="Cây ngã đổ">Cây xanh ngã đổ</option>
-                        <option value="Ngập nước">Ngập nước</option>
-                        <option value="Rác thải bừa bãi">Rác thải bừa bãi</option>
+
+                    <!-- 2. ĐIỆN LỰC (EVN) -->
+                    <optgroup label="Điện lực (EVN)">
+                        <option value="dien_luc|Sự cố đứt dây điện">Sự cố đứt dây điện</option>
+                        <option value="dien_luc|Trạm biến áp cháy nổ">Trạm biến áp cháy nổ</option>
+                        <option value="dien_luc|Cột điện nghiêng đổ">Cột điện nghiêng đổ</option>
                     </optgroup>
-                    <optgroup label="Điện & Chiếu sáng">
-                        <option value="Đèn đường hư">Đèn đường không sáng</option>
-                        <option value="Sự cố dây điện">Dây điện đứt / Sà thấp</option>
+
+                    <!-- 3. CẤP THOÁT NƯỚC -->
+                    <optgroup label="Cấp thoát nước">
+                        <option value="cap_thoat_nuoc|Bể đường ống nước">Bể đường ống nước</option>
+                        <option value="cap_thoat_nuoc|Ngập nước cục bộ">Ngập nước cục bộ</option>
+                        <option value="cap_thoat_nuoc|Nắp cống hư hỏng">Nắp cống hư hỏng / Mất nắp</option>
                     </optgroup>
-                    <optgroup label="Khác">
-                        <option value="Lấn chiếm vỉa hè">Lấn chiếm vỉa hè</option>
-                        <option value="Khác">Sự cố khác</option>
+
+                    <!-- 4. CÔNG VIÊN CÂY XANH -->
+                    <optgroup label="Công viên Cây xanh">
+                        <option value="cay_xanh|Cây xanh ngã đổ">Cây xanh ngã đổ</option>
+                        <option value="cay_xanh|Cành cây khô nguy hiểm">Cành cây khô nguy hiểm</option>
+                        <option value="cay_xanh|Hư hỏng thiết bị công viên">Hư hỏng thiết bị công viên</option>
                     </optgroup>
-                </select>
+
+                    <!-- 5. CHIẾU SÁNG ĐÔ THỊ -->
+                    <optgroup label="chieu_sang|Đèn đường không sáng">Đèn đường không sáng</optgroup>
+                    <optgroup label="Chiếu sáng Đô thị">
+                        <option value="chieu_sang|Đèn đường không sáng">Đèn đường không sáng</option>
+                        <option value="chieu_sang|Chập điện chiếu sáng">Chập điện chiếu sáng</option>
+                        <option value="chieu_sang|Đèn tín hiệu hư hỏng">Đèn tín hiệu hư hỏng</option>
+                    </optgroup>
+
+                    <!-- 6. HẠ TẦNG GIAO THÔNG -->
+                    <optgroup label="Hạ tầng Giao thông">
+                        <option value="giao_thong|Ổ gà / Ổ voi">Ổ gà / Ổ voi</option>
+                        <option value="giao_thong|Biển báo hư hỏng">Biển báo hư hỏng</option>
+                        <option value="giao_thong|Sụt lún mặt đường">Sụt lún mặt đường</option>
+                    </optgroup>
+                </select> 
+            </div>
                 <input type="text" id="input_khac" class="form-control mt-2" placeholder="Nhập tên sự cố cụ thể..." style="display: none;">
             </div>
                 <div class="mb-3"><label class="form-label fw-bold small text-secondary">Địa chỉ cụ thể</label><input type="text" id="dia_chi" class="form-control" placeholder="Ví dụ: Số 10 đường Nguyễn Huệ..."></div>
@@ -412,7 +439,7 @@
                 }{% if not forloop.last %},{% endif %}
             {% endfor %}
         ];
-        
+        console.log("Dữ liệu Bản Đồ:", allData);
         var arrChoDuyet = [], arrDangXuLy = [], arrDaXong = [];
         var heatLayerChoDuyet, heatLayerDangXuLy, heatLayerDaXong;
 
@@ -521,75 +548,92 @@
 
         // 8. Hàm Gửi Báo Cáo
         function guiBaoCao(e) {
-            if (e && e.preventDefault) e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
 
-            var selectVal = document.getElementById('tieu_de').value;
-            var tieude = (selectVal === 'Khác') ? document.getElementById('input_khac').value : selectVal;
-            
-            if (!tieude || tieude.trim() === '') { 
-                alert("⚠️ Vui lòng chọn loại sự cố!"); 
-                return; 
-            }
+    // 1. Lấy giá trị mã|tên từ ô Select
+    var selectElement = document.querySelector('select[name="du_lieu_su_co"]') || document.getElementById('tieu_de');
+    var duLieuSuCo = selectElement ? selectElement.value : '';
 
-            var points = document.getElementById('points-data').value;
-            if (!points || points === "[]") { 
-                alert("⚠️ Vui lòng chấm điểm trên bản đồ!"); 
-                return; 
-            }
+    if (!duLieuSuCo || duLieuSuCo.trim() === '') { 
+        alert("⚠️ Vui lòng chọn loại sự cố!"); 
+        return; 
+    }
 
-            var btn = document.querySelector('button[onclick="guiBaoCao(event)"]');
-            var oldHTML = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
-            btn.disabled = true;
+    var points = document.getElementById('points-data').value;
+    if (!points || points === "[]") { 
+        alert("⚠️ Vui lòng chấm điểm trên bản đồ!"); 
+        return; 
+    }
 
-            var fd = new FormData();
-            fd.append('tieu_de', tieude);
-            fd.append('dia_chi', document.getElementById('dia_chi').value);
-            fd.append('mo_ta', document.getElementById('mo_ta').value);
-            fd.append('points_data', points);
-            
-            var inputHinhAnh = document.getElementById('hinh_anh');
-            if (inputHinhAnh.files.length > 0) {
-                for (var i = 0; i < inputHinhAnh.files.length; i++) {
-                    fd.append('hinh_anh', inputHinhAnh.files[i]); 
-                }
-            }
+    // Hiệu ứng loading cho nút bấm
+    var btn = document.querySelector('button[type="submit"]') || document.querySelector('button[onclick="guiBaoCao(event)"]');
+    var oldHTML = "";
+    if (btn) {
+        oldHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
+        btn.disabled = true;
+    }
 
-            var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
-            if (csrf) fd.append('csrfmiddlewaretoken', csrf.value);
+    var fd = new FormData();
+    
+    // 🌟 GỬI ĐÚNG TÊN 'du_lieu_su_co' CHO BACKEND XỬ LÝ TÁCH CHUỖI
+    fd.append('du_lieu_su_co', duLieuSuCo);
 
-            fetch('/luu-phan-anh/', { method: 'POST', body: fd })
-            .then(r => r.json())
-            .then(d => {
-                if (d.success) { 
-                    alert("✅ Thành công!"); 
-                    location.reload(); 
-                } else { 
-                    alert("❌ Lỗi: " + d.message); 
-                }
-            })
-            .catch(() => alert("❌ Lỗi mạng!"))
-            .finally(() => { 
-                btn.innerHTML = oldHTML; 
-                btn.disabled = false; 
-            });
+    // Lấy giá trị địa chỉ, mô tả (Dùng querySelector vì HTML đang xài thuộc tính name)
+    var eleDiaChi = document.getElementById('dia_chi') || document.querySelector('[name="dia_chi"]');
+    if (eleDiaChi) {
+        fd.append('dia_chi', eleDiaChi.value);
+    } else {
+        fd.append('dia_chi', '');
+    }
+
+    var eleMoTa = document.getElementById('mo_ta') || document.querySelector('[name="mo_ta"]');
+    if (eleMoTa) {
+        fd.append('mo_ta', eleMoTa.value);
+    } else {
+        fd.append('mo_ta', '');
+    }
+    fd.append('points_data', points);
+    // Xử lý hình ảnh
+    var inputHinhAnh = document.querySelector('input[type="file"]') || document.getElementById('hinh_anh');
+    if (inputHinhAnh && inputHinhAnh.files.length > 0) {
+        for (var i = 0; i < inputHinhAnh.files.length; i++) {
+            fd.append('hinh_anh', inputHinhAnh.files[i]); 
         }
+    }
 
-        // Tự động hiện/ẩn ô "Khác"
-        document.getElementById('tieu_de').addEventListener('change', function() {
-            document.getElementById('input_khac').style.display = (this.value === 'Khác') ? 'block' : 'none';
-        });
-        
+    // Bảo mật CSRF của Django
+    var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrf) fd.append('csrfmiddlewaretoken', csrf.value);
 
-        // Sự kiện khi tìm thấy GPS
-        map.on('locationfound', function(e) {
-            veChamXuatPhat(e.latlng, "Vị trí GPS của bạn");
-        });
+    // Gửi dữ liệu về Server
+    fetch('/luu-phan-anh/', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) { 
+            alert("✅ Thành công!"); 
+            location.reload(); 
+        } else { 
+            alert("❌ Lỗi: " + d.message); 
+        }
+    })
+    .catch(() => alert("❌ Lỗi mạng!"))
+    .finally(() => { 
+        if (btn) {
+            btn.innerHTML = oldHTML; 
+            btn.disabled = false; 
+        }
+    });
+}
 
-        // Sự kiện khi GPS bị lỗi hoặc không cho phép
-        map.on('locationerror', function(e) {
-            alert("⚠️ Không thể lấy vị trí. Vui lòng bật định vị trên trình duyệt!");
-        });
+// Giữ lại các sự kiện GPS
+map.on('locationfound', function(e) {
+    veChamXuatPhat(e.latlng, "Vị trí GPS của bạn");
+});
+
+map.on('locationerror', function(e) {
+    alert("⚠️ Không thể lấy vị trí. Vui lòng bật định vị trên trình duyệt!");
+});
 
         // Hàm gắn vào nút bấm GPS
         function locateUser() { 

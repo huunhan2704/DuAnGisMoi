@@ -22,17 +22,35 @@ class PhanAnh(models.Model):
     # 1. Tiêu đề
     tieu_de = models.CharField(max_length=200, verbose_name="Tiêu đề")
 
+    # --- 🌟 BƯỚC MỚI: THÊM CỘT PHÂN LOẠI SỰ CỐ ---
+    CHUYEN_MON_CHOICES = [
+        ('an_ninh', 'An ninh & Cứu nạn'),
+        ('dien_luc', 'Điện lực (EVN)'),
+        ('cap_thoat_nuoc', 'Cấp thoát nước'),
+        ('cay_xanh', 'Công viên Cây xanh'),
+        ('chieu_sang', 'Chiếu sáng Đô thị'),
+        ('giao_thong', 'Hạ tầng Giao thông'),
+        ('khac', 'Khác'), 
+    ]
+    loai_su_co = models.CharField(
+        max_length=50, 
+        choices=CHUYEN_MON_CHOICES, 
+        default='khac', 
+        verbose_name="Thuộc lĩnh vực"
+    )
+
     # 2. Mô tả
     mo_ta = models.TextField(verbose_name="Mô tả chi tiết")
     dia_chi = models.CharField(max_length=200, blank=True, null=True, verbose_name="Địa chỉ/Tên đường")
+    
     #  Phản ánh này thuộc Quận nào
     quan_huyen = models.ForeignKey(QuanHuyen, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Thuộc Quận/Huyện")
+    
     # 3. Tọa độ
     du_lieu_toa_do = models.TextField(verbose_name="Danh sách tọa độ")
     
     # 4. Hình ảnh
     vi_tri = models.PointField(srid=4326, null=True, blank=True, verbose_name="Tọa độ chuẩn GIS")
-    
     hinh_anh = models.ImageField(upload_to='hien_truong/', blank=True, null=True, verbose_name="Ảnh hiện trường")
     
     # 5. Thời gian
@@ -59,21 +77,40 @@ class PhanAnh(models.Model):
     # 8. THÙNG RÁC
     da_xoa = models.BooleanField(default=False, verbose_name="Đã chuyển vào thùng rác")
     ngay_xoa = models.DateTimeField(null=True, blank=True, verbose_name="Ngày xóa")
-    
 # 2. MODEL PROFILE
 class Profile(models.Model):
+    # --- 🌟 DANH SÁCH 6 CHUYÊN MÔN (VÀ 1 CÁI TỔNG HỢP CHO ADMIN) ---
+    CHUYEN_MON_CHOICES = [
+        ('an_ninh', 'An ninh & Cứu nạn'),
+        ('dien_luc', 'Điện lực (EVN)'),
+        ('cap_thoat_nuoc', 'Cấp thoát nước'),
+        ('cay_xanh', 'Công viên Cây xanh'),
+        ('chieu_sang', 'Chiếu sáng Đô thị'),
+        ('giao_thong', 'Hạ tầng Giao thông'),
+        ('tong_hop', 'Quản lý Tổng hợp'), # Mặc định
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     so_dien_thoai = models.CharField(max_length=15, blank=True, null=True, verbose_name="Số điện thoại")
     avatar = models.ImageField(upload_to='avatars/', default='avatars/default.png', blank=True, null=True, verbose_name="Ảnh đại diện") 
+    
     # Cấp quyền nhân viên quản lý quận nào
     quan_quan_ly = models.ForeignKey(QuanHuyen, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Quận/Huyện quản lý (Dành cho nhân viên)")
-
+    
+    # --- 🌟 CỘT CHUYÊN MÔN VỪA THÊM MỚI ---
+    chuyen_mon = models.CharField(
+        max_length=50, 
+        choices=CHUYEN_MON_CHOICES, 
+        default='tong_hop', 
+        verbose_name="Chuyên môn phụ trách"
+    )
+    
     def __str__(self):
         # Nâng cấp hàm in ra cho dễ nhìn trong Admin
         if self.quan_quan_ly:
-            return f"Profile của {self.user.username} (Quản lý: {self.quan_quan_ly.ten_quan})"
-        return f"Profile của {self.user.username}"
-
+            return f"Profile của {self.user.username} - {self.get_chuyen_mon_display()} (Quản lý: {self.quan_quan_ly.ten_quan})"
+        return f"Profile của {self.user.username} - {self.get_chuyen_mon_display()}"
+    
 # 3. SIGNAL TỰ ĐỘNG (ĐÃ SỬA LỖI ADMIN CŨ)
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
