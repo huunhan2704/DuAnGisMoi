@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang Quản Lý | Urban Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body class="bg-light m-0 p-0">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-shield-halved me-2"></i>QUẢN TRỊ HỆ THỐNG</a>
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-center" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#phan-anh" role="tab" aria-selected="true">
+                        <i class="fa-solid fa-map-location-dot me-1"></i> Phản Ánh Sự Cố
+                    </a>
+                </li>
+
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link text-success fw-bold" data-bs-toggle="tab" href="#ban-do-khu-vuc" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-map-marked-alt me-1"></i> Bản Đồ Lãnh Thổ
+                    </a>
+                </li>
+                
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#ho-tro" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-headset me-1"></i> Yêu Cầu Hỗ Trợ
+                    </a>
+                </li>
+                
+                {% if user.is_superuser %}
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tai-khoan" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-users me-1"></i> Quản Lý Tài Khoản
+                    </a>
+                </li>
+                
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#gioi-thieu" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-circle-info me-1"></i> Quản Lý Giới Thiệu
+                    </a>
+                </li>
+                {% endif %}
+                
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" data-bs-toggle="tab" href="#lich-su" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch Sử
+                    </a>
+                </li>
+                
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link text-warning fw-bold" data-bs-toggle="tab" href="#thung-rac" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-trash-can me-1"></i> Thùng Rác
+                    </a>
+                </li>
+
+                {% if user.is_authenticated %}
+                <li class="nav-item dropdown ms-3">
+                    <a class="nav-link dropdown-toggle fw-bold text-white btn btn-outline-light px-3 rounded-pill" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-1"></i> {{ user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                        <li>
+                            <a class="dropdown-item fw-bold text-success" href="/">
+                                <i class="fa-solid fa-house me-2"></i> Về Trang chủ
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'map_home' %}"><i class="fas fa-map me-2 text-primary"></i> Vào Bản đồ</a></li>
+                        <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-user-cog me-2 text-primary"></i> Quản lý Hồ sơ</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item ms-3">
+                    <a class="nav-link btn btn-warning text-dark fw-bold px-4 rounded-pill shadow-sm" href="{% url 'login' %}">
+                        <i class="fas fa-sign-in-alt me-1"></i> Đăng nhập
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+{% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-warning{% endif %} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+<div class="container-fluid px-4">
+    <div class="tab-content mt-4" id="adminTabContent">
+        <div class="tab-pane fade" id="ban-do-khu-vuc" role="tabpanel">
+            <h4 class="mb-3 text-success"><i class="fa-solid fa-map-marked-alt"></i> Bản Đồ Phân Vùng Lãnh Thổ</h4>
+            <div class="card shadow-sm border-success">
+                <div class="card-body p-0">
+                    <div id="adminMap" style="height: 650px; width: 100%; border-radius: 5px; z-index: 1;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade show active" id="phan-anh" role="tabpanel">
+            <h4 class="mb-3 text-primary"><i class="fa-solid fa-map-location-dot"></i> Danh sách Phản Ánh Sự Cố</h4>
+            <div class="mb-4">
+                {% if user.is_superuser %}
+                    <span class="badge bg-danger p-2 fs-6 shadow-sm">
+                        <i class="fa-solid fa-earth-asia me-1"></i> Admin Tổng
+                    </span>
+                {% else %}
+                    <span class="badge bg-success p-2 fs-6 shadow-sm">
+                        <i class="fa-solid fa-map-pin me-1"></i> Trực thuộc: {{ user.profile.quan_quan_ly.ten_quan|default:"Chưa được phân công khu vực!" }}
+                    </span>
+                {% endif %}
+            </div>
+            <div class="card shadow-sm mb-3 border-primary">
+                <div class="card-body py-2">
+                    <form method="GET" action="" id="filterForm">
+                        {% if request.GET.focus_id %}
+                            <input type="hidden" name="focus_id" value="{{ request.GET.focus_id }}">
+                        {% endif %}
+
+                        <div class="row align-items-center">
+                            <div class="col-md-10">
+                                <label class="fw-bold small mb-1 text-muted">Lọc theo loại sự cố:</label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    {% for tieu_de in tat_ca_tieu_de %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="filter_tieu_de" 
+                                               value="{{ tieu_de }}" id="check_{{ forloop.counter }}"
+                                               {% if tieu_de in tieu_de_da_chon %}checked{% endif %}
+                                               onchange="this.form.submit()">
+                                        <label class="form-check-label small" for="check_{{ forloop.counter }}">
+                                            {{ tieu_de }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <a href="{% url 'trang_quan_ly' %}" class="btn btn-outline-secondary btn-sm shadow-sm">
+                                    <i class="fa-solid fa-rotate-left"></i> Xóa lọc
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-5">
+                <div class="card-body overflow-auto">
+                    <div class="table-responsive">
+                    <table class="table table-hover align-middle text-nowrap">
+                        <thead class="table-dark text-nowrap">
+                            <tr>
+                                <th>ID</th>
+                                <th>Người gửi</th>
+                                <th>Tiêu đề</th>
+                                <th>Địa chỉ</th>
+                                <th>Hình ảnh</th> 
+                                <th>Thời gian</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in ds_phan_anh %}
+                            {% if item.trang_thai == 'cho_duyet' or item.trang_thai == 'dang_xu_ly' %}
+                            <tr>
+                                <td>#{{ item.id }}</td>
+                                <td>{{ item.nguoi_gui.username|default:"Khách vãng lai" }}</td>
+                                <td class="fw-bold">{{ item.tieu_de }}</td>
+                               <td style="max-width: 250px;" class="text-wrap text-break">{{ item.dia_chi|default:"Chưa cập nhật địa chỉ" }}</td>
+                
+                                <td class="text-center align-middle">
+                                    {% if item.hinh_anh %}
+                                        <div class="position-relative d-inline-block">
+                                            <button type="button" class="btn p-0 border-0"
+                                                    onclick="moGallery([
+                                                        '{{ item.hinh_anh.url }}'
+                                                        {% for img in item.danh_sach_anh.all %}
+                                                        , '{{ img.hinh_anh.url }}'
+                                                        {% endfor %}
+                                                    ], '{{ item.tieu_de|escapejs }}')"
+                                                    title="Xem toàn bộ hình ảnh">
+                                                <img src="{{ item.hinh_anh.url }}" alt="Hình ảnh" class="img-thumbnail shadow-sm" style="height: 60px; width: 60px; object-fit: cover;">
+                                            </button>
+                                            
+                                            {% if item.danh_sach_anh.count > 0 %}
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm" style="font-size: 0.65rem;">
+                                                +{{ item.danh_sach_anh.count }}
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted small"><i class="fa-solid fa-image-slash"></i> Không có ảnh</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.thoi_gian|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    {% if item.trang_thai == 'cho_duyet' %}
+                                        <span class="badge bg-warning text-dark">{{ item.get_trang_thai_display }}</span>
+                                    {% else %}
+                                        <span class="badge bg-info text-dark">{{ item.get_trang_thai_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'map_home' %}?focus_id={{ item.id }}" class="btn btn-info btn-sm text-white shadow-sm" title="Định vị trên bản đồ">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </a>
+                                    <a href="{% url 'duyet_phan_anh' item.id %}" class="btn btn-success btn-sm" title="Duyệt / Cập nhật">
+                                        <i class="fa-solid fa-check"></i>
+                                    </a>
+                                    <a href="{% url 'xoa_phan_anh' item.id %}" class="btn btn-danger btn-sm" title="Xóa" onclick="return confirm('Ngài có chắc chắn muốn xóa phản ánh này không? Xóa là mất luôn đó nha!');">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-5">
+                                    <i class="fa-solid fa-shield-cat fa-4x text-success opacity-50 mb-3"></i>
+                                    <h5>Tuyệt vời!</h5>
+                                    <p class="mb-0">Khu vực <b>{{ user.profile.quan_quan_ly.ten_quan|default:"của bạn" }}</b> hiện đang rất bình yên, chưa có sự cố nào!</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    </div>
+                    
+                    <nav class="mt-3">
+                        <ul class="pagination pagination-sm justify-content-center">
+                            {% if ds_phan_anh.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page_pa=1{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">&laquo; Đầu</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page_pa={{ ds_phan_anh.previous_page_number }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Trước</a>
+                                </li>
+                            {% endif %}
+
+                            <li class="page-item disabled"><span class="page-link text-dark">Trang {{ ds_phan_anh.number }} / {{ ds_phan_anh.paginator.num_pages }}</span></li>
+
+                            {% if ds_phan_anh.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page_pa={{ ds_phan_anh.next_page_number }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Sau</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page_pa={{ ds_phan_anh.paginator.num_pages }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}{% if request.GET.focus_id %}&focus_id={{ request.GET.focus_id }}{% endif %}">Cuối &raquo;</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="ho-tro" role="tabpanel">
+            <h4 class="mb-3 text-danger"><i class="fa-solid fa-headset"></i> Danh sách Yêu cầu Hỗ trợ</h4>
+            <div class="card shadow-sm mb-5">
+                <div class="card-body overflow-auto">
+                    <table class="table table-hover align-middle text-nowrap">
+                        <thead class="table-secondary text-nowrap">
+                            <tr>
+                                <th>ID</th>
+                                <th>Người yêu cầu</th>
+                                <th>Chủ đề</th>
+                                <th>Nội dung</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ht in ds_ho_tro %}
+                            <tr>
+                                <td>#{{ ht.id }}</td>
+                                <td class="fw-bold">{{ ht.ho_ten }} <br><small class="text-muted">{{ ht.sdt|default:"" }}</small></td>
+                                <td>{{ ht.get_chu_de_display }}</td>
+                                <td>{{ ht.noi_dung|truncatechars:50 }}</td>
+                                <td>
+                                    {% if ht.da_xu_ly %}
+                                        <span class="badge bg-success">Đã xử lý</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Chờ phản hồi</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ht.da_xu_ly %}
+                                        <button class="btn btn-secondary btn-sm" disabled><i class="fa-solid fa-check-double"></i> Đã phản hồi</button>
+                                    {% else %}
+                                        <a href="{% url 'tra_loi_ho_tro' ht.id %}" class="btn btn-primary btn-sm"><i class="fa-solid fa-reply"></i> Trả lời</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted">Chưa có yêu cầu hỗ trợ nào.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <nav class="mt-3">
+                        <ul class="pagination pagination-sm justify-content-center">
+                            {% if ds_ho_tro.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?page_ht=1">&laquo; Đầu</a></li>
+                                <li class="page-item"><a class="page-link" href="?page_ht={{ ds_ho_tro.previous_page_number }}">Trước</a></li>
+                            {% endif %}
+
+                            <li class="page-item disabled">
+                                <span class="page-link text-dark fw-bold">Trang {{ ds_ho_tro.number }} / {{ ds_ho_tro.paginator.num_pages }}</span>
+                            </li>
+
+                            {% if ds_ho_tro.has_next %}
+                                <li class="page-item"><a class="page-link" href="?page_ht={{ ds_ho_tro.next_page_number }}{% for t in tieu_de_da_chon %}&filter_tieu_de={{ t }}{% endfor %}">Sau</a></li>
+                                <li class="page-item"><a class="page-link" href="?page_ht={{ ds_ho_tro.paginator.num_pages }}">Cuối &raquo;</a></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        {% if user.is_superuser %}
+        <div class="tab-pane fade" id="tai-khoan" role="tabpanel">
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="text-success m-0"><i class="fa-solid fa-users-gear"></i> Quản trị Nhân sự & Người dùng</h4>
+                <div>
+                    <button type="button" class="btn btn-success btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalThemUser">
+                        <i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản Mới
+                    </button>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card shadow-sm border-primary">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fs-6"><i class="fa-solid fa-user-tie"></i> Nhân sự Quản lý (Admin/Staff)</h5>
+                        </div>
+                        <div class="card-body overflow-auto p-0">
+                        <table class="table table-hover align-middle text-nowrap mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">ID</th>
+                                    <th>Tên đăng nhập</th>
+                                    <th>Email liên hệ</th>
+                                    <th>Quyền hạn</th>
+                                    <!-- 🌟 CỘT MỚI THÊM: TIÊU ĐỀ CHUYÊN MÔN -->
+                                    <th><i class="fa-solid fa-briefcase"></i> Chuyên môn</th> 
+                                    
+                                    <th><i class="fa-solid fa-map-location-dot"></i> Khu vực quản lý</th>
+                                    <th>Trạng thái</th>
+                                    <th class="text-center">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in ds_user %}
+                                    {% if u.is_superuser or u.is_staff %}
+                                    <tr>
+                                        <td class="ps-3 text-muted">#{{ u.id }}</td>
+                                        <td class="fw-bold text-primary">{{ u.username }}</td>
+                                        
+                                        <td>{{ u.email|default:"<span class='text-muted fst-italic'>Không có email</span>"|safe }}</td>
+                                        
+                                        <td>
+                                            {% if u.is_superuser %}
+                                                <span class="badge bg-danger"><i class="fa-solid fa-crown"></i> Admin Tổng</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark"><i class="fa-solid fa-user-shield"></i> Nhân viên</span>
+                                            {% endif %}
+                                        </td>
+
+                                        <!-- 🌟 CỘT MỚI THÊM: ĐỔ DỮ LIỆU CHUYÊN MÔN -->
+                                        <td>
+                                            {% if u.profile %}
+                                                {% if u.profile.chuyen_mon == 'tong_hop' %}
+                                                    <span class="badge bg-secondary">Quản lý Tổng hợp</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">{{ u.profile.get_chuyen_mon_display }}</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted small">Chưa cập nhật</span>
+                                            {% endif %}
+                                        </td>
+
+                                        <td>
+                                            {% if u.is_superuser %}
+                                                <span class="badge bg-dark">Toàn Thành Phố</span>
+                                            {% elif u.profile and u.profile.quan_quan_ly %}
+                                                <span class="badge border border-primary text-primary bg-light">{{ u.profile.quan_quan_ly.ten_quan }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary text-light">Chưa phân công</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if u.is_active %}
+                                                <span class="text-success fw-bold small"><i class="fa-solid fa-circle-check"></i> Hoạt động</span>
+                                            {% else %}
+                                                <span class="text-danger fw-bold small"><i class="fa-solid fa-ban"></i> Bị khóa</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if u.is_superuser %}
+                                                <span class="badge bg-light text-muted border" style="font-size: 11px;"><i class="fa-solid fa-shield"></i> Không thể sửa</span>
+                                            {% else %}
+                                                <a href="{% url 'khoa_user' u.id %}" class="btn btn-outline-warning btn-sm py-0" title="Khóa/Mở khóa">
+                                                    <i class="fa-solid fa-lock"></i>
+                                                </a>
+                                                <a href="{% url 'xoa_user' u.id %}" class="btn btn-outline-danger btn-sm py-0" title="Xóa" onclick="return confirm('Xóa vĩnh viễn nhân viên này?');">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card shadow-sm border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0 fs-6"><i class="fa-solid fa-users"></i> Người dùng Cộng đồng</h5>
+                        </div>
+                        <div class="card-body overflow-auto p-0">
+                            <table class="table table-hover align-middle text-nowrap mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">ID</th>
+                                        <th>Tên đăng nhập</th>
+                                        <th>Email liên hệ</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-center">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in ds_user %}
+                                        {% if not u.is_superuser and not u.is_staff %}
+                                        <tr>
+                                            <td class="ps-3 text-muted">#{{ u.id }}</td>
+                                            <td class="fw-bold">{{ u.username }}</td>
+                                            <td>{{ u.email|default:"<span class='text-muted fst-italic'>Không có</span>"|safe }}</td>
+                                            <td>
+                                                {% if u.is_active %}
+                                                    <span class="text-success fw-bold small"><i class="fa-solid fa-circle-check"></i> Hoạt động</span>
+                                                {% else %}
+                                                    <span class="text-danger fw-bold small"><i class="fa-solid fa-ban"></i> Bị khóa</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="{% url 'khoa_user' u.id %}" class="btn btn-outline-warning btn-sm py-0" title="Khóa/Mở khóa">
+                                                    <i class="fa-solid fa-lock"></i>
+                                                </a>
+                                                <a href="{% url 'xoa_user' u.id %}" class="btn btn-outline-danger btn-sm py-0" title="Xóa" onclick="return confirm('Xóa vĩnh viễn người dùng này?');">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <div class="tab-pane fade" id="gioi-thieu" role="tabpanel">
+            <h4 class="mb-3 text-info"><i class="fa-solid fa-circle-info"></i> Quản Lý Nội Dung Giới Thiệu</h4>
+            <div class="card shadow-sm border-0 mt-3">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-primary"><i class="fa-solid fa-pen-to-square me-2"></i>Chỉnh sửa Nội dung Trang Giới thiệu</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        {{ form_gt.media }} 
+                        {{ form_gt.as_p }}
+                        
+                        <button type="submit" name="btn_luu_gioi_thieu" class="btn btn-success mt-3 px-4">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="tab-pane fade" id="lich-su" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+            <!-- Bên trái: Tiêu đề y như cũ -->
+            <h4 class="m-0 text-secondary">
+                <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử Phản Ánh Đã Xử Lý
+            </h4>
+            
+            <!-- Bên phải: 2 nút bấm -->
+            <div>
+                <a href="{% url 'xuat_excel_lich_su' %}" class="btn btn-success btn-sm me-2">
+                    <i class="fa-solid fa-file-excel"></i> Xuất Excel
+                </a>
+                <button onclick="xacNhanXoaLichSu()" class="btn btn-danger btn-sm">
+                    <i class="fa-solid fa-trash-can"></i> Xóa tất cả
+                </button>
+            </div>
+        </div>
+            <div class="card shadow-sm mb-5">
+                <div class="card-body overflow-auto">
+                    <table class="table table-hover align-middle text-nowrap">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>ID</th>
+                                <th>Người gửi</th>
+                                <th>Tiêu đề</th>
+                                <th>Hình ảnh</th> 
+                                <th>Thời gian</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in ds_phan_anh %}
+                                {% if item.trang_thai != 'cho_duyet' and item.trang_thai != 'dang_xu_ly' %}
+                                <tr class="table-light text-muted">
+                                    <td>#{{ item.id }}</td>
+                                    <td>{{ item.nguoi_gui.username|default:"Khách vãng lai" }}</td>
+                                    <td class="fw-bold">{{ item.tieu_de }}</td>
+                                    <td>
+                                        {% if item.hinh_anh %}
+                                            <img src="{{ item.hinh_anh.url }}" alt="Hình sự cố" class="img-thumbnail shadow-sm opacity-75" style="width: 50px; height: 50px; object-fit: cover; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalHistory{{ item.id }}">
+
+                                            <div class="modal fade" id="modalHistory{{ item.id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header bg-dark text-white">
+                                                            <h5 class="modal-title"><i class="fa-solid fa-image"></i> Lịch sử - Sự cố #{{ item.id }}</h5>
+                                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body text-center bg-light">
+                                                            <img src="{{ item.hinh_anh.url }}" class="img-fluid rounded shadow">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="small">Không có ảnh</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.thoi_gian|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <span class="badge bg-success"><i class="fa-solid fa-check-double"></i> {{ item.get_trang_thai_display }}</span>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="thung-rac" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-warning m-0"><i class="fa-solid fa-trash-can"></i> Thùng Rác (Tự động xóa sau 7 ngày)</h4>
+                {% if ds_thung_rac %}
+                <!-- Nút Xóa Tất Cả (Chỉ hiện khi có rác) -->
+                <a href="{% url 'xoa_tat_ca_thung_rac' %}" class="btn btn-danger btn-sm shadow-sm" 
+                   onclick="return confirm('⚠️ CẢNH BÁO: Bạn có CHẮC CHẮN muốn dọn sạch toàn bộ thùng rác không? Hành động này sẽ xóa vĩnh viễn và không thể hoàn tác!');">
+                    <i class="fa-solid fa-dumpster-fire me-1"></i> Dọn Sạch Tất Cả
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="card shadow-sm mb-5 border-warning">
+                <div class="card-body overflow-auto">
+                    <table class="table table-hover align-middle text-nowrap">
+                        <thead class="table-warning">
+                            <tr>
+                                <th>ID</th>
+                                <th>Tiêu đề</th>
+                                <th>Ngày bị xóa</th>
+                                <th>Tình trạng</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in ds_thung_rac %}
+                            <tr class="table-light text-muted">
+                                <td>#{{ item.id }}</td>
+                                <td class="fw-bold text-decoration-line-through">{{ item.tieu_de }}</td>
+                                <td>{{ item.ngay_xoa|date:"d/m/Y H:i" }}</td>
+                                <td><span class="badge bg-danger">Chờ hủy vĩnh viễn</span></td>
+                                <td>
+                                    <a href="{% url 'khoi_phuc_phan_anh' item.id %}" class="btn btn-success btn-sm" title="Khôi phục lại">
+                                        <i class="fa-solid fa-trash-arrow-up"></i> Khôi phục
+                                    </a>
+                                    <a href="{% url 'xoa_vinh_vien' item.id %}" class="btn btn-dark btn-sm" title="Xóa vĩnh viễn ngay lập tức" onclick="return confirm('Hành động này không thể hoàn tác. Chắc chắn xóa?');">
+                                        <i class="fa-solid fa-radiation"></i> Xóa sạch
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-4"><i class="fa-solid fa-box-open fa-3x mb-3 opacity-50"></i><br>Thùng rác đang trống.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div> 
+</div> 
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+
+<div class="modal fade" id="modalXemAnh" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark border-0 shadow-lg">
+            <div class="modal-header border-bottom border-secondary py-2">
+                <h5 class="modal-title text-white fw-bold" id="tieudeGallery">Hình ảnh hiện trường</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <section id="image-slider" class="splide" aria-label="Incident Images">
+                    <div class="splide__track">
+                        <ul class="splide__list" id="khungChuaAnh">
+                            </ul>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var mySplide; 
+
+    function moGallery(mangHinhAnh, tieuDe) {
+        document.getElementById('tieudeGallery').innerText = "Sự cố: " + tieuDe;
+        
+        var khung = document.getElementById('khungChuaAnh');
+        khung.innerHTML = ''; 
+        
+        var mangKhongTrung = [...new Set(mangHinhAnh)];
+        var anhHopLe = mangKhongTrung.filter(function(url) {
+            return url && url.trim() !== "";
+        });
+
+        if (anhHopLe.length === 0) {
+            khung.innerHTML = '<li class="splide__slide text-center text-white p-5">Không có hình ảnh đính kèm!</li>';
+        } else {
+            anhHopLe.forEach(function(url) {
+                var htmlLi = '<li class="splide__slide text-center">';
+                htmlLi += '<img src="' + url + '" style="max-height: 75vh; max-width: 100%; object-fit: contain;">';
+                htmlLi += '</li>';
+                khung.innerHTML += htmlLi;
+            });
+        }
+
+        var myModal = new bootstrap.Modal(document.getElementById('modalXemAnh'));
+        myModal.show();
+
+        document.getElementById('modalXemAnh').addEventListener('shown.bs.modal', function () {
+            if (mySplide) mySplide.destroy(); 
+            
+            mySplide = new Splide('#image-slider', {
+                type   : 'fade', 
+                rewind : true,   
+                pagination: true,  
+                arrows: (anhHopLe.length > 1) 
+            }).mount();
+        }, { once: true });
+    }
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let targetTabId = null;
+
+        if (urlParams.has('filter_role')) {
+            targetTabId = '#tai-khoan';
+        } 
+        else if (urlParams.has('page_ht')) {
+            targetTabId = '#ho-tro';
+        } 
+        else if (urlParams.has('page_pa') || urlParams.has('filter_tieu_de') || urlParams.has('focus_id')) {
+            targetTabId = '#phan-anh';
+        }
+
+        if (targetTabId) {
+            let tabTriggerEl = document.querySelector('a[href="' + targetTabId + '"]');
+            if (tabTriggerEl) {
+                let tabInstance = new bootstrap.Tab(tabTriggerEl);
+                tabInstance.show();
+            }
+        }
+    });
+</script>
+<div class="modal fade" id="modalThemUser" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form method="POST" action="{% url 'them_user' %}">
+                {% csrf_token %}
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus"></i> Cấp tài khoản mới</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">Tên đăng nhập (Username) <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="username" required placeholder="Nhập tên viết liền không dấu">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">Địa chỉ Email</label>
+                        <input type="email" class="form-control" name="email" placeholder="example@gmail.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">Mật khẩu <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="password" required placeholder="Nhập mật khẩu cấp phát">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">Cấp bậc / Phân quyền <span class="text-danger">*</span></label>
+                        <select class="form-select border-success" name="role" id="selectRole" required onchange="toggleKhuVuc()">
+                            <option value="user" selected>👤 Người dùng thường (Chỉ gửi & xem phản ánh)</option>
+                            <option value="staff">🛠️ Nhân viên (Cần phân công khu vực)</option>
+                            <option value="admin">👑 Admin Tổng (Toàn quyền hệ thống)</option>
+                        </select>
+                    </div>
+
+                    <!-- 🌟 KHỐI NÀY ĐÃ ĐƯỢC NÂNG CẤP THÊM CHUYÊN MÔN 🌟 -->
+                    <div class="mb-3 p-3 border border-success rounded bg-white" id="divKhuVuc" style="display: none;">
+                        
+                        <!-- Ô chọn Quận Huyện -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-success small">Phân công Khu vực quản lý <span class="text-danger">*</span></label>
+                            <select class="form-select border-success" name="quan_huyen">
+                                <option value="">-- Chọn quận/huyện quản lý --</option>
+                                {% for q in ds_quan_huyen %}
+                                    <option value="{{ q.id }}">{{ q.ten_quan }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted fst-italic">Nếu chưa có quận, hãy bấm "Thêm Khu Vực" ở ngoài trước.</small>
+                        </div>
+
+                        <!-- Ô chọn Chuyên môn -->
+                        <div>
+                            <label class="form-label fw-bold text-success small">Chuyên môn phụ trách <span class="text-danger">*</span></label>
+                            <select class="form-select border-success" name="chuyen_mon">
+                                <option value="tong_hop">Quản lý Tổng hợp (Mặc định)</option>
+                                <option value="an_ninh">An ninh & Cứu nạn</option>
+                                <option value="dien_luc">Điện lực (EVN)</option>
+                                <option value="cap_thoat_nuoc">Cấp thoát nước</option>
+                                <option value="cay_xanh">Công viên Cây xanh</option>
+                                <option value="chieu_sang">Chiếu sáng Đô thị</option>
+                                <option value="giao_thong">Hạ tầng Giao thông</option>
+                            </select>
+                        </div>
+                        
+                    </div>
+                    <!-- 🌟 KẾT THÚC KHỐI NÂNG CẤP 🌟 -->
+
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-success btn-sm"><i class="fa-solid fa-check"></i> Xác nhận tạo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleKhuVuc() {
+        var role = document.getElementById("selectRole").value;
+        // Nếu chọn Nhân viên (staff) thì hiện ô chọn Quận, ngược lại thì ẩn
+        document.getElementById("divKhuVuc").style.display = (role === 'staff') ? "block" : "none";
+    }
+</script>
+<div class="modal fade" id="modalThemKhuVuc" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg">
+            <form method="POST" action="{% url 'them_khu_vuc' %}">
+                {% csrf_token %}
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-map"></i> Thêm Khu Vực Mới</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <label class="form-label fw-bold text-muted small">Tên Quận / Huyện</label>
+                    <input type="text" class="form-control border-success" name="ten_quan" required placeholder="VD: Quận 1, Quận Bình Thạnh...">
+                </div>
+                <div class="modal-footer bg-light p-2">
+                    <button type="submit" class="btn btn-success btn-sm w-100"><i class="fa-solid fa-plus"></i> Tạo nhanh</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var adminMap = null; // Biến lưu bản đồ
+
+// Lắng nghe khi người dùng bấm vào Tab "Bản Đồ Lãnh Thổ"
+var mapTabEl = document.querySelector('a[href="#ban-do-khu-vuc"]');
+mapTabEl.addEventListener('shown.bs.tab', function (event) {
+    
+    // Nếu bản đồ chưa được vẽ thì mới vẽ
+    if (adminMap === null) {
+        // 1. Khởi tạo bản đồ ở tâm Sài Gòn
+        adminMap = L.map('adminMap').setView([10.762622, 106.660172], 11);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(adminMap);
+
+        // 2. GỌI API ĐỂ VẼ RANH GIỚI VÀ HIỂN THỊ THỐNG KÊ
+        fetch('/api/ranh-gioi/')
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: function (feature) {
+                        return {
+                            color: feature.properties.mau_sac,     // Viền có màu
+                            fillColor: feature.properties.mau_sac, // Nền có màu
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.3 // Độ trong suốt
+                        };
+                    },
+                    onEachFeature: function (feature, layer) {
+                        var stats = feature.properties.thong_ke || {tong: 0, cho_duyet: 0, hoan_thanh: 0};
+                        // Lấy tên người quản lý từ API (Bước 1 mình vừa làm)
+                        var manager = feature.properties.nguoi_quan_ly || "Chưa phân công"; 
+                        
+                        var popupContent = `
+                            <div style="min-width: 190px;">
+                                <h6 class="text-primary border-bottom pb-2 mb-2"><i class="fa-solid fa-map-pin"></i> ${feature.properties.ten_quan}</h6>
+                                
+                                <div class="mb-2 pb-2 border-bottom" style="font-size: 12px;">
+                                    <span class="text-muted"><i class="fa-solid fa-user-shield"></i> Phụ trách:</span><br>
+                                    <b class="${manager === 'Chưa phân công' ? 'text-danger' : 'text-success'}">${manager}</b>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between mb-1" style="font-size: 13px;">
+                                    <span>Tổng số vụ:</span> <span class="fw-bold">${stats.tong}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1 text-danger" style="font-size: 13px;">
+                                    <span>🔴 Đang chờ:</span> <span class="fw-bold">${stats.cho_duyet}</span>
+                                </div>
+                                <div class="d-flex justify-content-between text-success" style="font-size: 13px;">
+                                    <span>🟢 Hoàn thành:</span> <span class="fw-bold">${stats.hoan_thanh}</span>
+                                </div>
+                                <hr class="my-2">
+                                <p class="text-muted mb-0" style="font-size: 11px; font-style: italic;">* Click để xem chi tiết danh sách quận</p>
+                            </div>
+                        `;
+                        
+                        layer.bindPopup(popupContent);
+                        
+                        // Hiệu ứng hover sáng lên
+                        layer.on({
+                            mouseover: function(e) {
+                                e.target.setStyle({ fillOpacity: 0.6, weight: 3 });
+                            },
+                            mouseout: function(e) {
+                                e.target.setStyle({ fillOpacity: 0.3, weight: 2 });
+                            }
+                        });
+                    }
+                }).addTo(adminMap);
+
+                // --- 🌟 BƯỚC MỚI: ĐỔ CÁC CHẤM SỰ CỐ (MARKERS) LÊN BẢN ĐỒ ---
+                // --- 🌟 BƯỚC MỚI: ĐỔ CÁC CHẤM SỰ CỐ VÀ TẠO BỘ LỌC TỰ ĐỘNG ---
+                // 1. Tạo 3 "giỏ" (LayerGroup) để phân loại sự cố
+                var layerChoDuyet = L.layerGroup();
+                var layerDangXuLy = L.layerGroup();
+                var layerDaXuLy = L.layerGroup();
+
+                fetch('/api/get-points/')
+                    .then(res => res.json())
+                    .then(points => {
+                        points.forEach(p => {
+                            if (p.lat && p.lng) {
+                                // Mặc định là Chờ duyệt (Màu Đỏ)
+                                var markerColor = "#dc3545"; 
+                                var targetLayer = layerChoDuyet;
+
+                                // Phân loại màu và đưa vào đúng giỏ theo trạng thái
+                                if (p.status === 'da_xu_ly') {
+                                    markerColor = "#198754"; // Xanh lá
+                                    targetLayer = layerDaXuLy;
+                                } else if (p.status === 'dang_xu_ly') {
+                                    markerColor = "#ffc107"; // Vàng
+                                    targetLayer = layerDangXuLy;
+                                }
+                                
+                                var dot = L.circleMarker([p.lat, p.lng], {
+                                    radius: 6,
+                                    fillColor: markerColor,
+                                    color: "#ffffff",
+                                    weight: 2,
+                                    opacity: 1,
+                                    fillOpacity: 0.9
+                                });
+
+                                // Gắn Popup thông tin
+                                dot.bindPopup(`
+                                    <div class="text-center">
+                                        ${p.image_url ? `<img src="${p.image_url}" class="rounded mb-2" style="width:120px; height:80px; object-fit:cover;">` : ''}
+                                        <div class="fw-bold small">${p.title}</div>
+                                        <span class="badge ${p.status === 'da_xu_ly' ? 'bg-success' : (p.status === 'dang_xu_ly' ? 'bg-warning text-dark' : 'bg-danger')} mb-2" style="font-size: 9px;">${p.status}</span>
+                                        <br><a href="${p.detail_url}" class="btn btn-primary btn-sm text-white px-3" style="font-size: 10px;">Chi tiết</a>
+                                    </div>
+                                `);
+
+                                // Ném cái chấm này vào đúng giỏ của nó
+                                dot.addTo(targetLayer);
+                            }
+                        });
+
+                        // 2. Mặc định load trang là hiển thị cả 3 giỏ lên bản đồ
+                        layerChoDuyet.addTo(adminMap);
+                        layerDangXuLy.addTo(adminMap);
+                        layerDaXuLy.addTo(adminMap);
+
+                        // 3. TẠO BẢNG BỘ LỌC CHECKBOX GÓC TRÊN BÊN PHẢI
+                        var overlays = {
+                            "🔴 Đang chờ duyệt": layerChoDuyet,
+                            "🟡 Đang xử lý": layerDangXuLy,
+                            "🟢 Đã hoàn thành": layerDaXuLy
+                        };
+                        
+                        L.control.layers(null, overlays, {
+                            collapsed: false // Để false cho bảng luôn mở bung ra nhìn cho xịn
+                        }).addTo(adminMap);
+                    })
+            })
+            .catch(error => console.log('Lỗi tải dữ liệu ranh giới:', error));
+    } else {
+        // Nếu bản đồ đã vẽ rồi, xài trick này để nó không bị lỗi hiển thị xám góc
+        adminMap.invalidateSize();
+    }
+});
+</script>
+<script>
+    function xacNhanXoaLichSu() {
+        if (confirm("⚠️ Bạn có chắc chắn muốn dọn dẹp TOÀN BỘ lịch sử đã xử lý không? Dữ liệu sẽ được chuyển vào Thùng rác.")) {
+            window.location.href = "{% url 'xoa_tat_ca_lich_su' %}";
+        }
+    }
+</script>
+</body>
+</html>
