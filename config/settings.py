@@ -77,12 +77,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        # Quan trọng: Dùng engine postgis để hỗ trợ bản đồ
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         
-        'NAME': 'duangismoi',       
+        'NAME': 'csdlGis',       
         'USER': 'postgres',        
-        'PASSWORD': '281105',
+        'PASSWORD': '123',
         'HOST': 'localhost',
         'PORT': '5432',
     }
