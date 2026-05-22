@@ -360,7 +360,7 @@ def register_view(request):
                     </div>
                 </div>
             """
-            email_msg = EmailMultiAlternatives(subject, "Vui lòng bật HTML để xem mail", 'admin@safecity.com', [email])
+            email_msg = EmailMultiAlternatives(subject, "Vui lòng bật HTML để xem mail", settings.DEFAULT_FROM_EMAIL, [email])
             email_msg.attach_alternative(html_content, "text/html")
             email_msg.send()
 
