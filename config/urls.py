@@ -36,6 +36,10 @@ urlpatterns = [
     path('robots.txt', robots_txt),
 ]
 
-# 2. Thêm đoạn này để xem được ảnh khi đang code (DEBUG = True)
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+from django.urls import re_path
+from django.views.static import serve
+
+# 2. Ép Django phục vụ file Media (ảnh người dùng up) ngay cả khi đã tắt DEBUG (lên mạng)
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
