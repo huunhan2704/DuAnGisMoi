@@ -31,9 +31,8 @@ urlpatterns = [
     
     path('ho-so-cua-toi/', views.profile, name='profile'),
     
-    # 6. ĐƯỜNG DẪN CHI TIẾT (KHAI BÁO CẢ 2 TÊN ĐỂ CHIỀU LÒNG CẢ 2 TRANG)
-    path('chi-tiet/<int:id_ho_so>/', views.chi_tiet_ho_so, name='chi_tiet'),       # Dòng này cho trang Profile
-    path('chi-tiet/<int:id_ho_so>/', views.chi_tiet_ho_so, name='chi_tiet_ho_so'), # Dòng này cho trang Quản lý hiện trường
+    # 6. ĐƯỜNG DẪN CHI TIẾT
+    path('chi-tiet/<int:id_ho_so>/', views.chi_tiet_ho_so, name='chi_tiet'),
     
     path('chinh-sua-thong-tin/', views.edit_profile, name='edit_profile'),
     

@@ -1,47 +1,34 @@
+# ============================================================
+# IMPORTS - ĐÃ DỌN DẸP, XÓA TRÙNG LẶP
+# ============================================================
 from django.core.paginator import Paginator
-from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
-from .models import PhanAnh
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .forms import DangKyForm 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404
-from .forms import DangKyForm, UserEditForm, ProfileEditForm 
-from .models import Profile
-from datetime import timedelta
-from django.utils import timezone
-import csv
-import os
-import openpyxl
-from django.http import HttpResponse
-import feedparser
-from datetime import datetime
-from bs4 import BeautifulSoup
-from django.contrib.auth.decorators import login_required
-from .models import HoTro
-from django.contrib import messages
-from django.shortcuts import redirect
-from django.shortcuts import render
-from django.core.mail import send_mail
-from django.contrib.admin.views.decorators import staff_member_required
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.gis.geos import Point
-import json
-from .models import PhanAnh, HinhAnhPhanAnh
-from django.utils import timezone
+from django.contrib import messages
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.template.loader import render_to_string
-from django.core.mail import EmailMultiAlternatives
 from django.urls import reverse
-from .models import GioiThieu 
-from .forms import GioiThieuForm
-from .models import QuanHuyen, Profile
+from django.utils import timezone
+from datetime import timedelta, datetime
+import csv
+import os
+import json
+import openpyxl
+import feedparser
+from bs4 import BeautifulSoup
+from .models import PhanAnh, HinhAnhPhanAnh, Profile, HoTro, GioiThieu, QuanHuyen
+from .forms import DangKyForm, UserEditForm, ProfileEditForm, GioiThieuForm
+
 #trang admin 
 @staff_member_required(login_url='login') 
 def trang_quan_ly(request):
@@ -186,20 +173,20 @@ def xoa_phan_anh(request, id):
     # Thông minh: Xóa ở trang nào thì load lại đúng trang đó
     trang_truoc = request.META.get('HTTP_REFERER')
     return redirect(trang_truoc) if trang_truoc else redirect('trang_quan_ly')
+@staff_member_required(login_url='login')
 def khoi_phuc_phan_anh(request, id):
     item = get_object_or_404(PhanAnh, id=id)
     item.da_xoa = False
     item.ngay_xoa = None
     item.save()
     messages.success(request, "✅ Đã khôi phục phản ánh.")
-    # Sửa từ 'quan_ly' thành 'trang_quan_ly'
     return redirect('trang_quan_ly')
 
+@staff_member_required(login_url='login')
 def xoa_vinh_vien_phan_anh(request, id):
     item = get_object_or_404(PhanAnh, id=id)
-    item.delete() # Xóa thật khỏi Database
+    item.delete()
     messages.warning(request, "🗑️ Đã xóa vĩnh viễn dữ liệu.")
-    # Sửa từ 'quan_ly' thành 'trang_quan_ly'
     return redirect('trang_quan_ly')
 
 @staff_member_required(login_url='login')
@@ -301,9 +288,18 @@ def xoa_user(request, id):
         
     return redirect('trang_quan_ly')
 
-# 1. Trang chủ
+# 1. Trang chủ - Lấy số liệu THẬT từ Database
 def home(request):
-    return render(request, 'maps/home.html')
+    tong_ho_so = PhanAnh.objects.filter(da_xoa=False).count()
+    da_xu_ly = PhanAnh.objects.filter(da_xoa=False, trang_thai='da_xu_ly').count()
+    tong_nguoi_dung = User.objects.filter(is_active=True, is_staff=False, is_superuser=False).count()
+    ty_le_xu_ly = round((da_xu_ly / tong_ho_so * 100), 1) if tong_ho_so > 0 else 0
+    context = {
+        'tong_ho_so': tong_ho_so,
+        'ty_le_xu_ly': ty_le_xu_ly,
+        'tong_nguoi_dung': tong_nguoi_dung,
+    }
+    return render(request, 'maps/home.html', context)
 
 # 2. Trang Bản đồ
 def map_home(request):
@@ -626,6 +622,7 @@ def api_get_points(request):
     return JsonResponse(data, safe=False)
 
 
+@login_required
 def quan_ly_hien_truong(request):
     # Lấy các điểm ĐANG XỬ LÝ (đang thi công)
     danh_sach = PhanAnh.objects.filter(trang_thai='dang_xu_ly').order_by('-thoi_gian')
@@ -910,6 +907,7 @@ def xoa_tat_ca_thung_rac(request):
     return redirect('trang_quan_ly')
 
 # --- HÀM 1: XUẤT EXCEL ---
+@staff_member_required(login_url='login')
 def xuat_excel_lich_su(request):
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -973,8 +971,9 @@ def xuat_excel_lich_su(request):
     return response
 
 # --- HÀM 2: XÓA TẤT CẢ LỊCH SỬ ---
+@staff_member_required(login_url='login')
 def xoa_tat_ca_lich_su(request):
     # Thay vì xóa vĩnh viễn, mình đổi trạng thái da_xoa=True để ném vào thùng rác cho an toàn
     PhanAnh.objects.filter(trang_thai='da_xu_ly', da_xoa=False).update(da_xoa=True)
     messages.success(request, "Đã dọn dẹp sạch sẽ toàn bộ lịch sử!")
-    return redirect('trang_quan_ly') # Đổi tên view này lại cho đúng với tên url trang quản lý của ông nếu cần
+    return redirect('trang_quan_ly')

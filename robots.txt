@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Allow: /ban-do/
+Allow: /danh-sach/
+Allow: /gioi-thieu/
+Allow: /tin-tuc/
+Allow: /huong-dan/
+Allow: /danh-ba-khan-cap/
+Allow: /trung-tam-ho-tro/
+
+# Không cho crawl các trang private và admin
+Disallow: /admin/
+Disallow: /quan-ly/
+Disallow: /ho-so-cua-toi/
+Disallow: /chinh-sua-thong-tin/
+Disallow: /dang-ky/
+Disallow: /dang-nhap/
+Disallow: /api/
+Disallow: /ckeditor/
+Disallow: /media/avatars/
+
+Sitemap: https://your-domain.onrender.com/sitemap.xml

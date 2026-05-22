@@ -1,0 +1,21 @@
+asgiref==3.11.0
+beautifulsoup4==4.14.3
+Django==5.2.10
+django-ckeditor==6.7.3
+django-js-asset==3.1.2
+et_xmlfile==2.0.0
+feedparser==6.0.12
+lxml==6.0.2
+openpyxl==3.1.5
+pillow==12.1.0
+psycopg2-binary==2.9.11
+sgmllib3k==1.0.0
+soupsieve==2.8.3
+sqlparse==0.5.5
+typing_extensions==4.15.0
+tzdata==2025.3
+
+# --- Production Dependencies ---
+python-decouple==3.8
+whitenoise==6.7.0
+gunicorn==22.0.0
