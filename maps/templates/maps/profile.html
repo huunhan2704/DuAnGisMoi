@@ -114,12 +114,12 @@
                                             </a>
 
                                             {% if item.trang_thai == 'cho_duyet' %}
-                                                <a href="{% url 'xoa_phan_anh' item.id %}" 
-                                                class="btn btn-sm btn-outline-danger ms-1" 
-                                                title="Xóa phản ánh này"
-                                                onclick="return confirm('⚠️ CẢNH BÁO: Bạn có chắc chắn muốn xóa phản ánh này không? Hành động này không thể hoàn tác!');">
-                                                    <i class="fas fa-trash-alt"></i>
-                                                </a>
+                                                <form method="POST" action="{% url 'xoa_phan_anh' item.id %}" class="d-inline" onsubmit="return confirm('⚠️ CẢNH BÁO: Bạn có chắc chắn muốn xóa phản ánh này không? Hành động này không thể hoàn tác!');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Xóa phản ánh này">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </form>
                                             {% endif %}
                                         </td>
                                     </tr>

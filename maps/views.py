@@ -10,6 +10,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
+from django.views.decorators.http import require_POST
 from django.contrib.gis.geos import Point
 from django.contrib import messages
 from django.core.mail import send_mail, EmailMultiAlternatives
@@ -139,6 +140,7 @@ def them_khu_vuc(request):
             messages.success(request, f"✅ Đã tạo khu vực mới: {ten_quan_moi}")
     return redirect('trang_quan_ly')
 
+@require_POST
 @staff_member_required(login_url='login')
 def duyet_phan_anh(request, id):
     # Tìm phản ánh theo ID
@@ -154,6 +156,7 @@ def duyet_phan_anh(request, id):
     phan_anh.save()
     return redirect('trang_quan_ly') # Làm xong thì load lại trang quản lý
 
+@require_POST
 @staff_member_required(login_url='login')
 @login_required
 def xoa_phan_anh(request, id):
@@ -173,6 +176,7 @@ def xoa_phan_anh(request, id):
     # Thông minh: Xóa ở trang nào thì load lại đúng trang đó
     trang_truoc = request.META.get('HTTP_REFERER')
     return redirect(trang_truoc) if trang_truoc else redirect('trang_quan_ly')
+@require_POST
 @staff_member_required(login_url='login')
 def khoi_phuc_phan_anh(request, id):
     item = get_object_or_404(PhanAnh, id=id)
@@ -182,6 +186,7 @@ def khoi_phuc_phan_anh(request, id):
     messages.success(request, "✅ Đã khôi phục phản ánh.")
     return redirect('trang_quan_ly')
 
+@require_POST
 @staff_member_required(login_url='login')
 def xoa_vinh_vien_phan_anh(request, id):
     item = get_object_or_404(PhanAnh, id=id)
@@ -261,6 +266,7 @@ def them_user(request):
 
     return redirect('trang_quan_ly')
 
+@require_POST
 @staff_member_required(login_url='login')
 def khoa_user(request, id):
     if not request.user.is_superuser:
@@ -275,6 +281,7 @@ def khoa_user(request, id):
         
     return redirect('trang_quan_ly')
 
+@require_POST
 @staff_member_required(login_url='login')
 def xoa_user(request, id):
     if not request.user.is_superuser:
@@ -528,7 +535,13 @@ def chi_tiet_ho_so(request, id_ho_so):
     # Lấy hồ sơ kèm theo toàn bộ ảnh trong kho phụ 'danh_sach_anh'
     ho_so = get_object_or_404(PhanAnh.objects.prefetch_related('danh_sach_anh'), id=id_ho_so)
     
-    # Ở đây ông dùng tên file là 'maps/detail.html'
+    # Phân quyền: Staff/Superuser xem được tất cả
+    # User thường chỉ xem được phản ánh của chính mình
+    if not (request.user.is_staff or request.user.is_superuser):
+        if ho_so.nguoi_gui != request.user:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+    
     return render(request, 'maps/detail.html', {'ho_so': ho_so})
 
 
@@ -633,6 +646,7 @@ def quan_ly_hien_truong(request):
     }
     return render(request, 'maps/quan_ly_hien_truong.html', context)
 
+@staff_member_required(login_url='login')
 def export_excel(request):
     # 1. Cấu hình response là file CSV
     response = HttpResponse(content_type='text/csv')
@@ -884,6 +898,7 @@ def api_get_ranh_gioi(request):
     }
     
     return HttpResponse(json.dumps(geojson_dict), content_type='application/json')
+@require_POST
 @staff_member_required(login_url='login')
 def xoa_tat_ca_thung_rac(request):
     user_dang_nhap = request.user
@@ -971,6 +986,7 @@ def xuat_excel_lich_su(request):
     return response
 
 # --- HÀM 2: XÓA TẤT CẢ LỊCH SỬ ---
+@require_POST
 @staff_member_required(login_url='login')
 def xoa_tat_ca_lich_su(request):
     # Thay vì xóa vĩnh viễn, mình đổi trạng thái da_xoa=True để ném vào thùng rác cho an toàn

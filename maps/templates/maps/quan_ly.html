@@ -222,12 +222,18 @@
                                     <a href="{% url 'map_home' %}?focus_id={{ item.id }}" class="btn btn-info btn-sm text-white shadow-sm" title="Định vị trên bản đồ">
                                         <i class="fas fa-map-marker-alt"></i>
                                     </a>
-                                    <a href="{% url 'duyet_phan_anh' item.id %}" class="btn btn-success btn-sm" title="Duyệt / Cập nhật">
-                                        <i class="fa-solid fa-check"></i>
-                                    </a>
-                                    <a href="{% url 'xoa_phan_anh' item.id %}" class="btn btn-danger btn-sm" title="Xóa" onclick="return confirm('Ngài có chắc chắn muốn xóa phản ánh này không? Xóa là mất luôn đó nha!');">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </a>
+                                    <form method="POST" action="{% url 'duyet_phan_anh' item.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm" title="Duyệt / Cập nhật">
+                                            <i class="fa-solid fa-check"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{% url 'xoa_phan_anh' item.id %}" class="d-inline" onsubmit="return confirm('Ngài có chắc chắn muốn xóa phản ánh này không?')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Xóa">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                             {% endif %}
@@ -361,7 +367,6 @@
                                     <th>Tên đăng nhập</th>
                                     <th>Email liên hệ</th>
                                     <th>Quyền hạn</th>
-                                    <!-- 🌟 CỘT MỚI THÊM: TIÊU ĐỀ CHUYÊN MÔN -->
                                     <th><i class="fa-solid fa-briefcase"></i> Chuyên môn</th> 
                                     
                                     <th><i class="fa-solid fa-map-location-dot"></i> Khu vực quản lý</th>
@@ -386,7 +391,6 @@
                                             {% endif %}
                                         </td>
 
-                                        <!-- 🌟 CỘT MỚI THÊM: ĐỔ DỮ LIỆU CHUYÊN MÔN -->
                                         <td>
                                             {% if u.profile %}
                                                 {% if u.profile.chuyen_mon == 'tong_hop' %}
@@ -409,22 +413,28 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if u.is_active %}
-                                                <span class="text-success fw-bold small"><i class="fa-solid fa-circle-check"></i> Hoạt động</span>
-                                            {% else %}
-                                                <span class="text-danger fw-bold small"><i class="fa-solid fa-ban"></i> Bị khóa</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-center">
+                                             {% if u.is_active %}
+                                                 <span class="text-success fw-bold small"><i class="fa-solid fa-circle-check"></i> Hoạt động</span>
+                                             {% else %}
+                                                 <span class="text-danger fw-bold small"><i class="fa-solid fa-ban"></i> Bị khóa</span>
+                                             {% endif %}
+                                         </td>
+                                         <td class="text-center">
                                             {% if u.is_superuser %}
                                                 <span class="badge bg-light text-muted border" style="font-size: 11px;"><i class="fa-solid fa-shield"></i> Không thể sửa</span>
                                             {% else %}
-                                                <a href="{% url 'khoa_user' u.id %}" class="btn btn-outline-warning btn-sm py-0" title="Khóa/Mở khóa">
-                                                    <i class="fa-solid fa-lock"></i>
-                                                </a>
-                                                <a href="{% url 'xoa_user' u.id %}" class="btn btn-outline-danger btn-sm py-0" title="Xóa" onclick="return confirm('Xóa vĩnh viễn nhân viên này?');">
-                                                    <i class="fa-solid fa-trash"></i>
-                                                </a>
+                                                <form method="POST" action="{% url 'khoa_user' u.id %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-outline-warning btn-sm py-0" title="Khóa/Mở khóa">
+                                                        <i class="fa-solid fa-lock"></i>
+                                                    </button>
+                                                </form>
+                                                <form method="POST" action="{% url 'xoa_user' u.id %}" class="d-inline" onsubmit="return confirm('Xóa vĩnh viễn nhân viên này?')">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm py-0" title="Xóa">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </form>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -467,12 +477,18 @@
                                                 {% endif %}
                                             </td>
                                             <td class="text-center">
-                                                <a href="{% url 'khoa_user' u.id %}" class="btn btn-outline-warning btn-sm py-0" title="Khóa/Mở khóa">
-                                                    <i class="fa-solid fa-lock"></i>
-                                                </a>
-                                                <a href="{% url 'xoa_user' u.id %}" class="btn btn-outline-danger btn-sm py-0" title="Xóa" onclick="return confirm('Xóa vĩnh viễn người dùng này?');">
-                                                    <i class="fa-solid fa-trash"></i>
-                                                </a>
+                                                <form method="POST" action="{% url 'khoa_user' u.id %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-outline-warning btn-sm py-0" title="Khóa/Mở khóa">
+                                                        <i class="fa-solid fa-lock"></i>
+                                                    </button>
+                                                </form>
+                                                <form method="POST" action="{% url 'xoa_user' u.id %}" class="d-inline" onsubmit="return confirm('Xóa vĩnh viễn người dùng này?')">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm py-0" title="Xóa">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                         {% endif %}
@@ -509,19 +525,20 @@
 
         <div class="tab-pane fade" id="lich-su" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-3">
-            <!-- Bên trái: Tiêu đề y như cũ -->
             <h4 class="m-0 text-secondary">
                 <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử Phản Ánh Đã Xử Lý
             </h4>
             
-            <!-- Bên phải: 2 nút bấm -->
             <div>
                 <a href="{% url 'xuat_excel_lich_su' %}" class="btn btn-success btn-sm me-2">
                     <i class="fa-solid fa-file-excel"></i> Xuất Excel
                 </a>
-                <button onclick="xacNhanXoaLichSu()" class="btn btn-danger btn-sm">
-                    <i class="fa-solid fa-trash-can"></i> Xóa tất cả
-                </button>
+                <form method="POST" action="{% url 'xoa_tat_ca_lich_su' %}" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử này?')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fa-solid fa-trash-can"></i> Xóa tất cả
+                    </button>
+                </form>
             </div>
         </div>
             <div class="card shadow-sm mb-5">
@@ -582,11 +599,12 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="text-warning m-0"><i class="fa-solid fa-trash-can"></i> Thùng Rác (Tự động xóa sau 7 ngày)</h4>
                 {% if ds_thung_rac %}
-                <!-- Nút Xóa Tất Cả (Chỉ hiện khi có rác) -->
-                <a href="{% url 'xoa_tat_ca_thung_rac' %}" class="btn btn-danger btn-sm shadow-sm" 
-                   onclick="return confirm('⚠️ CẢNH BÁO: Bạn có CHẮC CHẮN muốn dọn sạch toàn bộ thùng rác không? Hành động này sẽ xóa vĩnh viễn và không thể hoàn tác!');">
-                    <i class="fa-solid fa-dumpster-fire me-1"></i> Dọn Sạch Tất Cả
-                </a>
+                <form method="POST" action="{% url 'xoa_tat_ca_thung_rac' %}" class="d-inline" onsubmit="return confirm('Xóa sạch thùng rác? Hành động này không thể hoàn tác!')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fa-solid fa-dumpster-fire"></i> Dọn sạch Thùng Rác
+                    </button>
+                </form>
                 {% endif %}
             </div>
 
@@ -610,12 +628,18 @@
                                 <td>{{ item.ngay_xoa|date:"d/m/Y H:i" }}</td>
                                 <td><span class="badge bg-danger">Chờ hủy vĩnh viễn</span></td>
                                 <td>
-                                    <a href="{% url 'khoi_phuc_phan_anh' item.id %}" class="btn btn-success btn-sm" title="Khôi phục lại">
-                                        <i class="fa-solid fa-trash-arrow-up"></i> Khôi phục
-                                    </a>
-                                    <a href="{% url 'xoa_vinh_vien' item.id %}" class="btn btn-dark btn-sm" title="Xóa vĩnh viễn ngay lập tức" onclick="return confirm('Hành động này không thể hoàn tác. Chắc chắn xóa?');">
-                                        <i class="fa-solid fa-radiation"></i> Xóa sạch
-                                    </a>
+                                    <form method="POST" action="{% url 'khoi_phuc_phan_anh' item.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm" title="Khôi phục lại">
+                                            <i class="fa-solid fa-trash-arrow-up"></i> Khôi phục
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{% url 'xoa_vinh_vien' item.id %}" class="d-inline" onsubmit="return confirm('Hành động này không thể hoàn tác. Chắc chắn xóa?')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-dark btn-sm" title="Xóa vĩnh viễn ngay lập tức">
+                                            <i class="fa-solid fa-radiation"></i> Xóa sạch
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                             {% empty %}

@@ -188,6 +188,8 @@ if os.name == 'nt':
 # CKEDITOR
 # ==============================================================
 
+SILENCED_SYSTEM_CHECKS = ['ckeditor.W001']
+
 CKEDITOR_UPLOAD_PATH = "uploads/"
 
 CKEDITOR_CONFIGS = {
@@ -200,3 +202,29 @@ CKEDITOR_CONFIGS = {
         ]),
     },
 }
+
+
+# ==============================================================
+# HTTPS / SECURITY HEADERS (Chỉ bật khi DEBUG=False / production)
+# ==============================================================
+
+if not DEBUG:
+    # Bắt buộc dùng HTTPS
+    SECURE_SSL_REDIRECT = True
+
+    # Cookie session chỉ gửi qua HTTPS
+    SESSION_COOKIE_SECURE = True
+
+    # Cookie CSRF chỉ gửi qua HTTPS
+    CSRF_COOKIE_SECURE = True
+
+    # HSTS: Trình duyệt nhớ "chỉ dùng HTTPS" trong 1 năm
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    # Ngăn trình duyệt đoán Content-Type
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+    # Render đặt HTTPS proxy, cần trust header này
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

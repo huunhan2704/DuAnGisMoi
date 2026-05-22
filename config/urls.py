@@ -16,14 +16,24 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-
 from django.conf import settings
 from django.conf.urls.static import static
+
+from django.http import HttpResponse
+import os
+
+def robots_txt(request):
+    file_path = os.path.join(settings.BASE_DIR, 'robots.txt')
+    try:
+        with open(file_path, 'r') as f:
+            return HttpResponse(f.read(), content_type="text/plain")
+    except FileNotFoundError:
+        return HttpResponse("User-agent: *\nDisallow:", content_type="text/plain")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('maps.urls')),
-    
+    path('robots.txt', robots_txt),
 ]
 
 # 2. Thêm đoạn này để xem được ảnh khi đang code (DEBUG = True)
