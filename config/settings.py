@@ -4,6 +4,7 @@ Django settings for config project.
 
 from pathlib import Path
 import os
+import dj_database_url
 from decouple import config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -39,7 +40,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise để serve static files trên production
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise serve static files trên production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -69,19 +70,33 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # ==============================================================
-# DATABASE - ĐỌC TỪ .ENV
+# DATABASE
+# Ưu tiên DATABASE_URL (Render/Neon production), fallback về cấu hình local
 # ==============================================================
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': config('DB_NAME', default='duangismoi'),
-        'USER': config('DB_USER', default='postgres'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='5432'),
+DATABASE_URL = config('DATABASE_URL', default=None)
+
+if DATABASE_URL:
+    # Production: Render hoặc Neon.tech (dùng PostGIS backend)
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            engine='django.contrib.gis.db.backends.postgis',
+        )
     }
-}
+else:
+    # Development local: đọc từ .env
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.contrib.gis.db.backends.postgis',
+            'NAME': config('DB_NAME', default='duangismoi'),
+            'USER': config('DB_USER', default='postgres'),
+            'PASSWORD': config('DB_PASSWORD', default=''),
+            'HOST': config('DB_HOST', default='localhost'),
+            'PORT': config('DB_PORT', default='5432'),
+        }
+    }
 
 
 # ==============================================================
@@ -108,7 +123,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # INTERNATIONALIZATION
 # ==============================================================
 
-LANGUAGE_CODE = 'vi'  # Đổi sang tiếng Việt
+LANGUAGE_CODE = 'vi'
 
 TIME_ZONE = 'Asia/Ho_Chi_Minh'
 
@@ -122,7 +137,7 @@ USE_TZ = True
 # ==============================================================
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Thêm STATIC_ROOT cho collectstatic
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # WhiteNoise: Nén và cache static files tự động
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -158,7 +173,6 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Urban Manager <norepl
 
 if os.name == 'nt':
     # ---- WINDOWS (Development) ----
-    # Tự động tìm trong các thư mục phổ biến của PostgreSQL
     import glob
     gdal_candidates = glob.glob(r'C:\Program Files\PostgreSQL\*\bin\libgdal*.dll')
     geos_candidates = glob.glob(r'C:\Program Files\PostgreSQL\*\bin\libgeos_c.dll')
@@ -167,7 +181,7 @@ if os.name == 'nt':
         GDAL_LIBRARY_PATH = gdal_candidates[0]
     if geos_candidates:
         GEOS_LIBRARY_PATH = geos_candidates[0]
-# else: trên Linux (Render/Ubuntu), GDAL được cài sẵn qua apt-get, không cần set path
+# else: trên Linux (Render), GDAL được cài qua build.sh, không cần set path
 
 
 # ==============================================================
