@@ -24,11 +24,5 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Sao chép toàn bộ source code vào container
 COPY . /app/
 
-# Thu thập các file tĩnh (CSS, JS, Images)
-RUN python manage.py collectstatic --noinput
-
-# Expose port (Render sẽ tự động cấu hình qua biến môi trường PORT)
-EXPOSE 8000
-
-# Khởi chạy server bằng Gunicorn
-CMD ["sh", "-c", "python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000}"]
+# Khởi chạy server: Thu thập file tĩnh, migrate DB, và chạy Gunicorn
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000}"]
