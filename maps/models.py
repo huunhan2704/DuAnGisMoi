@@ -106,8 +106,8 @@ class PhanAnh(models.Model):
             else:
                 ma_qh = "".join(word[0].upper() for word in ten_qh.split())
 
-        # Gộp lại + thêm ID để đảm bảo duy nhất
-        return f"{ma_lv}_{ngay}_{ma_qh}_{self.id}"
+        # Gộp lại theo đúng định dạng
+        return f"{ma_lv}_{ngay}_{ma_qh}"
 
     class Meta:
         verbose_name = "Tin Phản Ánh"
