@@ -106,8 +106,20 @@ class PhanAnh(models.Model):
             else:
                 ma_qh = "".join(word[0].upper() for word in ten_qh.split())
 
-        # Gộp lại theo đúng định dạng
-        return f"{ma_lv}_{ngay}_{ma_qh}"
+        # 4. Tính số thứ tự trong ngày
+        so_thu_tu = 1
+        if self.id and self.thoi_gian:
+            so_thu_tu = PhanAnh.objects.filter(
+                loai_su_co=self.loai_su_co,
+                quan_huyen=self.quan_huyen,
+                thoi_gian__year=self.thoi_gian.year,
+                thoi_gian__month=self.thoi_gian.month,
+                thoi_gian__day=self.thoi_gian.day,
+                id__lte=self.id
+            ).count()
+
+        # Gộp lại theo định dạng chuẩn: Mã_Ngày_Quận_SốThứTự
+        return f"{ma_lv}_{ngay}_{ma_qh}_{so_thu_tu}"
 
     class Meta:
         verbose_name = "Tin Phản Ánh"
