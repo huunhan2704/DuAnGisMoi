@@ -21,6 +21,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta, datetime
+from django.conf import settings
 import csv
 import os
 import json
