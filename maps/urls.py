@@ -3,6 +3,7 @@ from . import views
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
+from .forms import CustomSetPasswordForm
 
 urlpatterns = [
     # 1. Trang chủ
@@ -26,7 +27,7 @@ urlpatterns = [
     html_email_template_name='maps/password_reset_email.html' # Thêm dòng này để gửi mail dạng HTML
 ), name='password_reset'),
     path('quen-mat-khau/xong/', auth_views.PasswordResetDoneView.as_view(template_name='maps/password_reset_done.html'), name='password_reset_done'),
-    path('dat-lai-mat-khau/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='maps/password_reset_confirm.html'), name='password_reset_confirm'),
+    path('dat-lai-mat-khau/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='maps/password_reset_confirm.html', form_class=CustomSetPasswordForm), name='password_reset_confirm'),
     path('dat-lai-mat-khau/thanh-cong/', auth_views.PasswordResetCompleteView.as_view(template_name='maps/password_reset_complete.html'), name='password_reset_complete'),
     
     path('ho-so-cua-toi/', views.profile, name='profile'),

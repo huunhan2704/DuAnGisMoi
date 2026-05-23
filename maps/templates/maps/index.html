@@ -186,7 +186,6 @@
                         {% endif %}
                         <li><a class="dropdown-item" href="{% url 'map_home' %}"><i class="fa-solid fa-map me-2 text-primary"></i> Vào Bản đồ</a></li>
                         <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-user-cog me-2 text-primary"></i> Quản lý Hồ sơ</a></li>
-                        <li><a class="dropdown-item" href="{% url 'list' %}"><i class="fa-solid fa-address-card me-2 text-primary"></i> Xem lịch sử phản ánh </a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger fw-bold" href="{% url 'logout' %}"><i class="fa-solid fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
                     </ul>  
@@ -260,7 +259,7 @@
             </div>
                 <input type="text" id="input_khac" class="form-control mt-2" placeholder="Nhập tên sự cố cụ thể..." style="display: none;">
             </div>
-                <div class="mb-3"><label class="form-label fw-bold small text-secondary">Địa chỉ cụ thể</label><input type="text" id="dia_chi" class="form-control" placeholder="Ví dụ: Số 10 đường Nguyễn Huệ..."></div>
+                <div class="mb-3"><label class="form-label fw-bold small text-secondary">Địa chỉ cụ thể <span class="text-danger">*</span></label><input type="text" id="dia_chi" name="dia_chi" class="form-control" placeholder="Ví dụ: Số 10 đường Nguyễn Huệ..." required></div>
                 <div class="mb-3"><label class="form-label fw-bold small text-secondary">Mô tả</label><textarea id="mo_ta" class="form-control" rows="3" placeholder="Mô tả chi tiết..."></textarea></div>
                 <div class="mb-4">
                     <label class="form-label fw-bold small text-secondary">Hình ảnh</label>
@@ -280,7 +279,7 @@
                     <div class="mt-3 small">Chưa có tài khoản? <a href="{% url 'register' %}" class="fw-bold">Đăng ký</a></div>
                 </div>
             {% endif %}
-            <div class="mt-auto pt-3 border-top"><a href="{% url 'list' %}" class="btn btn-outline-primary w-100 fw-bold py-2"><i class="fa-solid fa-table-list me-2"></i> Xem Danh Sách Hồ Sơ</a></div>
+            <div class="mt-auto pt-3 border-top"><a href="{% url 'list' %}" class="btn btn-outline-primary w-100 fw-bold py-2"><i class="fa-solid fa-table-list me-2"></i> Xem Danh Sách Phản Ánh</a></div>
         </div>
 
         <div id="map">
@@ -305,7 +304,7 @@
                     <label class="form-check-label fw-bold" for="toggleHeatmap">🔥 Biểu đồ nhiệt (Đồng bộ)</label>
                 </div>
                 <label class="fw-bold small text-muted text-uppercase mb-2">⭕ Quét vùng ảnh hưởng</label>
-                <div class="input-group input-group-sm mb-2"><input type="number" id="bufferRadius" class="form-control" value="500" placeholder="m"><span class="input-group-text">mét</span></div>
+                <div class="input-group input-group-sm mb-2"><input type="number" id="bufferRadius" class="form-control" value="500" min="1" max="10000" placeholder="m" oninput="if(this.value<1)this.value=1;if(this.value>10000)this.value=10000;"><span class="input-group-text">mét</span></div>
                 
                 <div class="mb-2">
                     <div class="dropdown">
@@ -429,6 +428,7 @@
             {% for p in phan_anh %}
                 { 
                     id: "{{ p.id }}",
+                    ma_su_co: "{{ p.ma_su_co }}",
                     title: "{{ p.tieu_de|escapejs }}", 
                     address: "{{ p.dia_chi|escapejs }}",
                     desc: "{{ p.mo_ta|escapejs }}",
@@ -541,6 +541,11 @@
                 return; 
             }
 
+            if (markers.length >= 3) {
+                alert("⚠️ Chỉ được chọn tối đa 3 điểm cho một lần báo cáo!");
+                return;
+            }
+
             if (typeof addMarker === 'function') {
                 addMarker(toaDoMoi.lat, toaDoMoi.lng); 
             }
@@ -582,6 +587,10 @@
     // Lấy giá trị địa chỉ, mô tả (Dùng querySelector vì HTML đang xài thuộc tính name)
     var eleDiaChi = document.getElementById('dia_chi') || document.querySelector('[name="dia_chi"]');
     if (eleDiaChi) {
+        if (!eleDiaChi.value || eleDiaChi.value.trim() === '') {
+            alert("⚠️ Vui lòng nhập địa chỉ cụ thể!");
+            return;
+        }
         fd.append('dia_chi', eleDiaChi.value);
     } else {
         fd.append('dia_chi', '');

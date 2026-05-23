@@ -1,10 +1,8 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.core.validators import RegexValidator
+from django.contrib.auth.forms import UserCreationForm, SetPasswordForm
 from django.contrib.auth.models import User
-from .models import Profile
-from .models import GioiThieu
-
-# 1. FORM ĐĂNG KÝ (Cũ - Giữ nguyên)
+from .models import Profile, GioiThieu
 class DangKyForm(UserCreationForm):
     email = forms.EmailField(required=True, label="Địa chỉ Email") 
 
@@ -18,6 +16,14 @@ class DangKyForm(UserCreationForm):
             raise forms.ValidationError("Email này đã được sử dụng rồi!")
         return email
 
+# 1.5 FORM ĐẶT LẠI MẬT KHẨU (Custom)
+class CustomSetPasswordForm(SetPasswordForm):
+    def clean_new_password1(self):
+        new_password = self.cleaned_data.get('new_password1')
+        if self.user.check_password(new_password):
+            raise forms.ValidationError("Mật khẩu mới không được trùng với mật khẩu cũ!")
+        return new_password
+
 # 2. FORM SỬA THÔNG TIN CÁ NHÂN (Mới - Ông đang thiếu cái này nè)
 class UserEditForm(forms.ModelForm):
     email = forms.EmailField(required=True, label="Địa chỉ Email")
@@ -30,6 +36,17 @@ class UserEditForm(forms.ModelForm):
     
 # 3. FORM SỬA AVATAR & SĐT (Cũ - Giữ nguyên)
 class ProfileEditForm(forms.ModelForm):
+    so_dien_thoai = forms.CharField(
+        validators=[RegexValidator(r'^[0-9]+$', message="Số điện thoại chỉ được chứa các chữ số.")],
+        required=False,
+        label="Số điện thoại",
+        max_length=15,
+        widget=forms.TextInput(attrs={
+            'pattern': '[0-9]{8,15}',
+            'title': 'Vui lòng nhập số điện thoại hợp lệ (từ 8 đến 15 chữ số)'
+        })
+    )
+    
     class Meta:
         model = Profile
         fields = ('so_dien_thoai', 'avatar')

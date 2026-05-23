@@ -181,7 +181,7 @@
                             {% for item in ds_phan_anh %}
                             {% if item.trang_thai == 'cho_duyet' or item.trang_thai == 'dang_xu_ly' %}
                             <tr>
-                                <td>#{{ item.id }}</td>
+                                <td>#{{ item.ma_su_co }}</td>
                                 <td>{{ item.nguoi_gui.username|default:"Khách vãng lai" }}</td>
                                 <td class="fw-bold">{{ item.tieu_de }}</td>
                                <td style="max-width: 250px;" class="text-wrap text-break">{{ item.dia_chi|default:"Chưa cập nhật địa chỉ" }}</td>
@@ -228,12 +228,35 @@
                                             <i class="fa-solid fa-check"></i>
                                         </button>
                                     </form>
-                                    <form method="POST" action="{% url 'xoa_phan_anh' item.id %}" class="d-inline" onsubmit="return confirm('Ngài có chắc chắn muốn xóa phản ánh này không?')">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Xóa">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalXoa{{ item.id }}" title="Xóa">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+
+                                    <!-- Modal Xóa Phản Ánh -->
+                                    <div class="modal fade text-wrap" id="modalXoa{{ item.id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content text-start">
+                                                <form method="POST" action="{% url 'xoa_phan_anh' item.id %}">
+                                                    {% csrf_token %}
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Xác nhận xóa sự cố #{{ item.ma_su_co }}</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Bạn có chắc chắn muốn xóa phản ánh này không?</p>
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-bold text-danger">Lý do xóa (Sẽ gửi Email thông báo):</label>
+                                                            <textarea class="form-control" name="ly_do_xoa" rows="3" placeholder="Nhập lý do tại sao phản ánh này không hợp lệ..." required></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                                        <button type="submit" class="btn btn-danger">Xóa phản ánh</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                             {% endif %}
@@ -558,7 +581,7 @@
                             {% for item in ds_phan_anh %}
                                 {% if item.trang_thai != 'cho_duyet' and item.trang_thai != 'dang_xu_ly' %}
                                 <tr class="table-light text-muted">
-                                    <td>#{{ item.id }}</td>
+                                    <td>#{{ item.ma_su_co }}</td>
                                     <td>{{ item.nguoi_gui.username|default:"Khách vãng lai" }}</td>
                                     <td class="fw-bold">{{ item.tieu_de }}</td>
                                     <td>
@@ -569,7 +592,7 @@
                                                 <div class="modal-dialog modal-dialog-centered modal-lg">
                                                     <div class="modal-content">
                                                         <div class="modal-header bg-dark text-white">
-                                                            <h5 class="modal-title"><i class="fa-solid fa-image"></i> Lịch sử - Sự cố #{{ item.id }}</h5>
+                                                            <h5 class="modal-title"><i class="fa-solid fa-image"></i> Lịch sử - Sự cố #{{ item.ma_su_co }}</h5>
                                                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                                         </div>
                                                         <div class="modal-body text-center bg-light">
@@ -623,7 +646,7 @@
                         <tbody>
                             {% for item in ds_thung_rac %}
                             <tr class="table-light text-muted">
-                                <td>#{{ item.id }}</td>
+                                <td>#{{ item.ma_su_co }}</td>
                                 <td class="fw-bold text-decoration-line-through">{{ item.tieu_de }}</td>
                                 <td>{{ item.ngay_xoa|date:"d/m/Y H:i" }}</td>
                                 <td><span class="badge bg-danger">Chờ hủy vĩnh viễn</span></td>

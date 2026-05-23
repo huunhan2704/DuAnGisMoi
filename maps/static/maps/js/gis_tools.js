@@ -146,6 +146,7 @@ function renderMap(dataToRender) {
                 var popupContent = `
                     <div class="popup-header">${item.title}</div>
                     <div class="popup-body">
+                        <span class="badge bg-primary text-white shadow-sm mb-1">${item.ma_su_co || ('ID: ' + item.id)}</span>
                         <span class="badge text-dark popup-status mb-2" style="background:${color}; color:white!important;">${item.status_text}</span>
                         ${item.image ? "<img src='" + item.image + "' class='popup-img'>" : ""}
                         <hr class="my-2">
@@ -180,9 +181,12 @@ function syncHeatmap() {
 function initCategoryDropdown() {
     var container = document.getElementById('categoryList');
     var standardTypes = [
-        "Đường hư / Ổ gà", "Nắp cống hư hỏng", "Biển báo hư hỏng",
-        "Cây ngã đổ", "Ngập nước", "Rác thải bừa bãi",
-        "Đèn đường hư", "Sự cố dây điện", "Lấn chiếm vỉa hè", "Khác"
+        "Sự cố cháy nổ", "Tai nạn giao thông", "Yêu cầu cứu nạn",
+        "Sự cố đứt dây điện", "Trạm biến áp cháy nổ", "Cột điện nghiêng đổ",
+        "Bể đường ống nước", "Ngập nước cục bộ", "Nắp cống hư hỏng / Mất nắp",
+        "Cây xanh ngã đổ", "Cành cây khô nguy hiểm", "Hư hỏng thiết bị công viên",
+        "Đèn đường không sáng", "Chập điện chiếu sáng", "Đèn tín hiệu hư hỏng",
+        "Ổ gà / Ổ voi", "Biển báo hư hỏng", "Sụt lún mặt đường"
     ];
     var existingTypes = allData.map(item => item.title);
     var allTypes = [...new Set([...standardTypes, ...existingTypes])].sort();
@@ -285,9 +289,9 @@ function analyzeData(centers) {
         if (!keepItem && isBufferMode && item.status_code === 'dang_xu_ly') {
             if (Array.isArray(item.coords)) {
                 item.coords.forEach(function(c) {
-                    var pt = turf.point([c.lng, c.lat]);
+                    var pt = turf.point([parseFloat(c.lng), parseFloat(c.lat)]);
                     var isInside = centers.some(center => {
-                        var centerPt = turf.point([center.lng, center.lat]);
+                        var centerPt = turf.point([parseFloat(center.lng), parseFloat(center.lat)]);
                         return turf.distance(centerPt, pt, { units: 'kilometers' }) <= radiusKm;
                     });
                     if (isInside) { validCoords.push(c); keepItem = true; }

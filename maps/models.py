@@ -70,6 +70,45 @@ class PhanAnh(models.Model):
     def __str__(self):
         return self.tieu_de
 
+    @property
+    def ma_su_co(self):
+        # 1. Mã lĩnh vực
+        dict_ma = {
+            'an_ninh': 'ANCN',
+            'dien_luc': 'DL',
+            'cap_thoat_nuoc': 'CTN',
+            'cay_xanh': 'CX',
+            'chieu_sang': 'CS',
+            'giao_thong': 'GT',
+            'khac': 'KHAC',
+        }
+        ma_lv = dict_ma.get(self.loai_su_co, 'KHAC')
+
+        # 2. Ngày tháng năm
+        ngay = self.thoi_gian.strftime("%d%m%Y") if self.thoi_gian else ""
+
+        # 3. Quận huyện
+        ma_qh = "KXD" # Không xác định
+        if self.quan_huyen:
+            ten_qh = self.quan_huyen.ten_quan.lower()
+            if "quận" in ten_qh:
+                so_quan = ten_qh.replace("quận", "").strip()
+                if so_quan.isdigit():
+                    ma_qh = f"Q{so_quan}"
+                else:
+                    ma_qh = "Q" + "".join(word[0].upper() for word in so_quan.split())
+            elif "huyện" in ten_qh:
+                ten = ten_qh.replace("huyện", "").strip()
+                ma_qh = "H" + "".join(word[0].upper() for word in ten.split())
+            elif "thành phố" in ten_qh or "tp" in ten_qh:
+                ten = ten_qh.replace("thành phố", "").replace("tp", "").strip()
+                ma_qh = "TP" + "".join(word[0].upper() for word in ten.split())
+            else:
+                ma_qh = "".join(word[0].upper() for word in ten_qh.split())
+
+        # Gộp lại + thêm ID để đảm bảo duy nhất
+        return f"{ma_lv}_{ngay}_{ma_qh}_{self.id}"
+
     class Meta:
         verbose_name = "Tin Phản Ánh"
         verbose_name_plural = "Danh sách Phản Ánh"

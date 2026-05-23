@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chi tiết hồ sơ #{{ ho_so.id }} | Urban Manager</title>
+    <title>Chi tiết hồ sơ #{{ ho_so.ma_su_co }} | Urban Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -47,7 +47,7 @@
                     <div class="card-header bg-white border-0 pt-4 px-4">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <span class="text-muted small">Mã hồ sơ: #{{ ho_so.id }}</span>
+                                <span class="text-muted small">Mã hồ sơ: #{{ ho_so.ma_su_co }}</span>
                                 <h2 class="text-dark fw-bold mt-1">{{ ho_so.tieu_de }}</h2>
                                 <p class="text-muted"><i class="fa-regular fa-clock me-1"></i> Ngày gửi: {{ ho_so.thoi_gian|date:"H:i - d/m/Y" }}</p>
                             </div>

@@ -166,12 +166,35 @@ def xoa_phan_anh(request, id):
     else:
         item = get_object_or_404(PhanAnh, id=id, nguoi_gui=request.user)
 
+    ly_do_xoa = request.POST.get('ly_do_xoa', '').strip()
+
     # Thực hiện Xóa mềm
     item.da_xoa = True
     item.ngay_xoa = timezone.now()
     item.save()
     
-    messages.success(request, "✅ Đã chuyển vào Thùng rác.")
+    # Gửi email nếu có lý do và người gửi có email
+    if ly_do_xoa and item.nguoi_gui and item.nguoi_gui.email:
+        try:
+            subject = 'Thông báo: Phản ánh của bạn đã bị từ chối/gỡ bỏ'
+            html_content = f"""
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2 style="color: #dc3545;">Thông báo Hủy phản ánh</h2>
+                    <p>Chào <b>{item.nguoi_gui.username}</b>,</p>
+                    <p>Phản ánh "<b>{item.tieu_de}</b>" của bạn đã bị quản trị viên từ chối và gỡ bỏ khỏi hệ thống.</p>
+                    <div style="background-color: #f8d7da; border-left: 5px solid #dc3545; padding: 15px; margin: 20px 0;">
+                        <p style="margin: 0;"><b>Lý do:</b> {ly_do_xoa}</p>
+                    </div>
+                    <p>Cảm ơn bạn đã đóng góp cho hệ thống.</p>
+                </div>
+            """
+            email_msg = EmailMultiAlternatives(subject, "Vui lòng bật HTML", settings.DEFAULT_FROM_EMAIL, [item.nguoi_gui.email])
+            email_msg.attach_alternative(html_content, "text/html")
+            email_msg.send()
+        except Exception as e:
+            print("Lỗi gửi mail: ", e)
+    
+    messages.success(request, "✅ Đã chuyển vào Thùng rác và gửi email thông báo (nếu có).")
 
     # Thông minh: Xóa ở trang nào thì load lại đúng trang đó
     trang_truoc = request.META.get('HTTP_REFERER')
@@ -473,6 +496,12 @@ def luu_phan_anh(request):
             if toado and toado != "[]":
                 try:
                     points_list = json.loads(toado)
+                    if len(points_list) > 3:
+                        return JsonResponse({
+                            'success': False,
+                            'message': '⚠️ Chỉ được phép gửi tối đa 3 điểm cho một sự cố!'
+                        })
+                    
                     if len(points_list) > 0:
                         lat = float(points_list[0]['lat'])
                         lng = float(points_list[0]['lng'])
@@ -522,11 +551,13 @@ def luu_phan_anh(request):
 def profile(request):
     # Dùng .filter(nguoi_gui=...) thay vì user=...
     danh_sach = PhanAnh.objects.filter(nguoi_gui=request.user).order_by('-id')
+    tong_so_da_xong = danh_sach.filter(trang_thai='da_xu_ly').count()
     
     context = {
         'user': request.user,
         'danh_sach': danh_sach,
-        'tong_so': danh_sach.count()
+        'tong_so': danh_sach.count(),
+        'tong_so_da_xong': tong_so_da_xong
     }
     return render(request, 'maps/profile.html', context)
 
@@ -621,7 +652,8 @@ def api_get_points(request):
                         pass # Nếu rỗng thì bỏ qua, xài chuỗi rỗng
                         
                 data.append({
-                    'id': item.id, 
+                    'id': item.id,
+                    'ma_su_co': item.ma_su_co,
                     'title': item.tieu_de, 
                     'lat': lat, 
                     'lng': lng, 
@@ -789,6 +821,7 @@ def api_quet_vung_postgis(request):
     for sc in ds_su_co:
         data.append({
             'id': sc.id,
+            'ma_su_co': sc.ma_su_co,
             'tieu_de': sc.tieu_de,
             # Tính luôn khoảng cách thực tế từ tâm đến điểm đó để show ra báo cáo
             'khoang_cach': round(sc.vi_tri.distance(tam_diem) * 100000, 2) # Nhân để đổi ra mét tương đối
