@@ -174,6 +174,7 @@ def xoa_phan_anh(request, id):
     item.save()
     
     # Gửi email nếu có lý do và người gửi có email
+    email_status = ""
     if ly_do_xoa and item.nguoi_gui and item.nguoi_gui.email:
         try:
             subject = 'Thông báo: Phản ánh của bạn đã bị từ chối/gỡ bỏ'
@@ -191,10 +192,17 @@ def xoa_phan_anh(request, id):
             email_msg = EmailMultiAlternatives(subject, "Vui lòng bật HTML", settings.DEFAULT_FROM_EMAIL, [item.nguoi_gui.email])
             email_msg.attach_alternative(html_content, "text/html")
             email_msg.send()
+            email_status = f" Đã gửi Email thông báo tới {item.nguoi_gui.email} (Vui lòng kiểm tra Mailtrap)."
         except Exception as e:
             print("Lỗi gửi mail: ", e)
+            email_status = f" Lỗi không thể gửi Email: {str(e)}"
+    else:
+        if not item.nguoi_gui:
+            email_status = " (Không gửi Email do người gửi ẩn danh)."
+        elif not item.nguoi_gui.email:
+            email_status = " (Không gửi Email do tài khoản người gửi không có địa chỉ Email)."
     
-    messages.success(request, "✅ Đã chuyển vào Thùng rác và gửi email thông báo (nếu có).")
+    messages.success(request, f"✅ Đã chuyển vào Thùng rác.{email_status}")
 
     # Thông minh: Xóa ở trang nào thì load lại đúng trang đó
     trang_truoc = request.META.get('HTTP_REFERER')
