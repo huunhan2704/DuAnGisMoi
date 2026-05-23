@@ -559,7 +559,7 @@ def luu_phan_anh(request):
 @login_required
 def profile(request):
     # Dùng .filter(nguoi_gui=...) thay vì user=...
-    danh_sach = PhanAnh.objects.filter(nguoi_gui=request.user).order_by('-id')
+    danh_sach = PhanAnh.objects.filter(nguoi_gui=request.user, da_xoa=False).order_by('-id')
     tong_so_da_xong = danh_sach.filter(trang_thai='da_xu_ly').count()
     
     context = {
@@ -610,14 +610,14 @@ def edit_profile(request):
 # Bổ sung các hàm bị thiếu
 def trang_thong_ke(request):
     from django.contrib.auth.models import User
-    tong_so = PhanAnh.objects.count()
-    cho_duyet = PhanAnh.objects.filter(trang_thai='cho_duyet').count()
-    dang_xu_ly = PhanAnh.objects.filter(trang_thai='dang_xu_ly').count()
-    da_xu_ly = PhanAnh.objects.filter(trang_thai='da_xu_ly').count()
+    tong_so = PhanAnh.objects.filter(da_xoa=False).count()
+    cho_duyet = PhanAnh.objects.filter(trang_thai='cho_duyet', da_xoa=False).count()
+    dang_xu_ly = PhanAnh.objects.filter(trang_thai='dang_xu_ly', da_xoa=False).count()
+    da_xu_ly = PhanAnh.objects.filter(trang_thai='da_xu_ly', da_xoa=False).count()
     ty_le = 0
     if tong_so > 0: ty_le = round((da_xu_ly / tong_so) * 100, 1)
 
-    context = {'tong_so': tong_so, 'cho_duyet': cho_duyet, 'dang_xu_ly': dang_xu_ly, 'da_xu_ly': da_xu_ly, 'ty_le': ty_le, 'so_nguoi_dung': User.objects.count(), 'bai_moi': PhanAnh.objects.all().order_by('-id')[:5]}
+    context = {'tong_so': tong_so, 'cho_duyet': cho_duyet, 'dang_xu_ly': dang_xu_ly, 'da_xu_ly': da_xu_ly, 'ty_le': ty_le, 'so_nguoi_dung': User.objects.count(), 'bai_moi': PhanAnh.objects.filter(da_xoa=False).order_by('-id')[:5]}
     return render(request, 'maps/thong_ke.html', context)
 
 @login_required
@@ -679,7 +679,7 @@ def api_get_points(request):
 @login_required
 def quan_ly_hien_truong(request):
     # Lấy các điểm ĐANG XỬ LÝ (đang thi công)
-    danh_sach = PhanAnh.objects.filter(trang_thai='dang_xu_ly').order_by('-thoi_gian')
+    danh_sach = PhanAnh.objects.filter(trang_thai='dang_xu_ly', da_xoa=False).order_by('-thoi_gian')
     
     context = {
         'danh_sach': danh_sach,
@@ -703,7 +703,7 @@ def export_excel(request):
     writer.writerow(['ID', 'Tiêu đề', 'Tọa độ', 'Thời gian', 'Trạng thái'])
 
     # 5. Lấy dữ liệu và ghi từng dòng
-    for pa in PhanAnh.objects.all().order_by('-id'):
+    for pa in PhanAnh.objects.filter(da_xoa=False).order_by('-id'):
         writer.writerow([
             pa.id, 
             pa.tieu_de, 
