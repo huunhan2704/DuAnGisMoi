@@ -192,7 +192,7 @@ def xoa_phan_anh(request, id):
             email_msg = EmailMultiAlternatives(subject, "Vui lòng bật HTML", settings.DEFAULT_FROM_EMAIL, [item.nguoi_gui.email])
             email_msg.attach_alternative(html_content, "text/html")
             email_msg.send()
-            email_status = f" Đã gửi Email thông báo tới {item.nguoi_gui.email} (Vui lòng kiểm tra Mailtrap)."
+            email_status = f" Đã gửi Email thông báo tới {item.nguoi_gui.email}."
         except Exception as e:
             print("Lỗi gửi mail: ", e)
             email_status = f" Lỗi không thể gửi Email: {str(e)}"
@@ -396,7 +396,7 @@ def register_view(request):
             email_msg.send()
 
             # XÓA DÒNG login() CŨ, THAY BẰNG THÔNG BÁO VÀ CHUYỂN HƯỚNG
-            messages.success(request, 'Đăng ký thành công! Vui lòng kiểm tra Email (Mailtrap) để kích hoạt tài khoản.')
+            messages.success(request, 'Đăng ký thành công! Vui lòng kiểm tra Email để kích hoạt tài khoản.')
             return redirect('login') # Chuyển về trang đăng nhập
 
     else:
