@@ -22,45 +22,45 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-center" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link active" data-bs-toggle="tab" href="#phan-anh" role="tab" aria-selected="true">
+                    <a class="nav-link text-white fw-bold active" data-bs-toggle="tab" href="#phan-anh" role="tab" aria-selected="true">
                         <i class="fa-solid fa-map-location-dot me-1"></i> Phản Ánh Sự Cố
                     </a>
                 </li>
 
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link text-success fw-bold" data-bs-toggle="tab" href="#ban-do-khu-vuc" role="tab" aria-selected="false">
+                    <a class="nav-link text-white fw-bold" data-bs-toggle="tab" href="#ban-do-khu-vuc" role="tab" aria-selected="false">
                         <i class="fa-solid fa-map-marked-alt me-1"></i> Bản Đồ Lãnh Thổ
                     </a>
                 </li>
                 
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link" data-bs-toggle="tab" href="#ho-tro" role="tab" aria-selected="false">
+                    <a class="nav-link text-white fw-bold" data-bs-toggle="tab" href="#ho-tro" role="tab" aria-selected="false">
                         <i class="fa-solid fa-headset me-1"></i> Yêu Cầu Hỗ Trợ
                     </a>
                 </li>
                 
                 {% if user.is_superuser %}
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link" data-bs-toggle="tab" href="#tai-khoan" role="tab" aria-selected="false">
+                    <a class="nav-link text-white fw-bold" data-bs-toggle="tab" href="#tai-khoan" role="tab" aria-selected="false">
                         <i class="fa-solid fa-users me-1"></i> Quản Lý Tài Khoản
                     </a>
                 </li>
                 
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link" data-bs-toggle="tab" href="#gioi-thieu" role="tab" aria-selected="false">
+                    <a class="nav-link text-white fw-bold" data-bs-toggle="tab" href="#gioi-thieu" role="tab" aria-selected="false">
                         <i class="fa-solid fa-circle-info me-1"></i> Quản Lý Giới Thiệu
                     </a>
                 </li>
                 {% endif %}
                 
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link" data-bs-toggle="tab" href="#lich-su" role="tab" aria-selected="false">
+                    <a class="nav-link text-white fw-bold" data-bs-toggle="tab" href="#lich-su" role="tab" aria-selected="false">
                         <i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch Sử
                     </a>
                 </li>
                 
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link text-warning fw-bold" data-bs-toggle="tab" href="#thung-rac" role="tab" aria-selected="false">
+                    <a class="nav-link text-white fw-bold" data-bs-toggle="tab" href="#thung-rac" role="tab" aria-selected="false">
                         <i class="fa-solid fa-trash-can me-1"></i> Thùng Rác
                     </a>
                 </li>
@@ -1019,6 +1019,26 @@ mapTabEl.addEventListener('shown.bs.tab', function (event) {
             window.location.href = "{% url 'xoa_tat_ca_lich_su' %}";
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Restore active tab
+        var activeTab = localStorage.getItem('activeAdminTab');
+        if (activeTab) {
+            var tabElement = document.querySelector('a[href="' + activeTab + '"]');
+            if (tabElement) {
+                var tab = new bootstrap.Tab(tabElement);
+                tab.show();
+            }
+        }
+        
+        // Save active tab
+        var tabLinks = document.querySelectorAll('a[data-bs-toggle="tab"]');
+        tabLinks.forEach(function(tabLink) {
+            tabLink.addEventListener('shown.bs.tab', function(e) {
+                localStorage.setItem('activeAdminTab', e.target.getAttribute('href'));
+            });
+        });
+    });
 </script>
 </body>
 </html>
