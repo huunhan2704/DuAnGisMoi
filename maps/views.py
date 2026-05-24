@@ -65,17 +65,28 @@ def trang_quan_ly(request):
             chuyen_mon_giao = profile.chuyen_mon # Ví dụ: 'cap_thoat_nuoc'
 
             if quan_duoc_giao:
-                # 🌟 ĐOẠN ĂN TIỀN: Thêm loai_su_co vào filter
-                pa_list = PhanAnh.objects.filter(
-                    da_xoa=False, 
-                    quan_huyen=quan_duoc_giao,
-                    loai_su_co=chuyen_mon_giao # <--- Lọc đúng ngành nghề
-                )
-                ds_thung_rac = PhanAnh.objects.filter(
-                    da_xoa=True, 
-                    quan_huyen=quan_duoc_giao,
-                    loai_su_co=chuyen_mon_giao # <--- Thùng rác cũng lọc theo ngành
-                ).order_by('-ngay_xoa')
+                # Nếu là Quản lý tổng hợp thì thấy tất cả loại sự cố trong quận đó
+                if chuyen_mon_giao == 'tong_hop':
+                    pa_list = PhanAnh.objects.filter(
+                        da_xoa=False, 
+                        quan_huyen=quan_duoc_giao
+                    )
+                    ds_thung_rac = PhanAnh.objects.filter(
+                        da_xoa=True, 
+                        quan_huyen=quan_duoc_giao
+                    ).order_by('-ngay_xoa')
+                else:
+                    # 🌟 ĐOẠN ĂN TIỀN: Thêm loai_su_co vào filter
+                    pa_list = PhanAnh.objects.filter(
+                        da_xoa=False, 
+                        quan_huyen=quan_duoc_giao,
+                        loai_su_co=chuyen_mon_giao # <--- Lọc đúng ngành nghề
+                    )
+                    ds_thung_rac = PhanAnh.objects.filter(
+                        da_xoa=True, 
+                        quan_huyen=quan_duoc_giao,
+                        loai_su_co=chuyen_mon_giao # <--- Thùng rác cũng lọc theo ngành
+                    ).order_by('-ngay_xoa')
 
                 # Cập nhật thông báo cho chuyên nghiệp
                 ten_cm = profile.get_chuyen_mon_display()
@@ -298,9 +309,11 @@ def them_user(request):
 
     return redirect('trang_quan_ly')
 
-@require_POST
 @staff_member_required(login_url='login')
 def khoa_user(request, id):
+    if request.method != 'POST':
+        return redirect('trang_quan_ly')
+        
     if not request.user.is_superuser:
         messages.error(request, "⚠️ Bạn không có quyền thực hiện thao tác này!")
         return redirect('trang_quan_ly')
@@ -313,9 +326,11 @@ def khoa_user(request, id):
         
     return redirect('trang_quan_ly')
 
-@require_POST
 @staff_member_required(login_url='login')
 def xoa_user(request, id):
+    if request.method != 'POST':
+        return redirect('trang_quan_ly')
+        
     if not request.user.is_superuser:
         messages.error(request, "⚠️ Bạn không có quyền thực hiện thao tác này!")
         return redirect('trang_quan_ly')
@@ -636,8 +651,12 @@ def api_get_points(request):
     else:
         try:
             quan_duoc_giao = user_dang_nhap.profile.quan_quan_ly
+            chuyen_mon_giao = user_dang_nhap.profile.chuyen_mon
             if quan_duoc_giao:
-                danh_sach = PhanAnh.objects.filter(da_xoa=False, quan_huyen=quan_duoc_giao)
+                if chuyen_mon_giao == 'tong_hop':
+                    danh_sach = PhanAnh.objects.filter(da_xoa=False, quan_huyen=quan_duoc_giao)
+                else:
+                    danh_sach = PhanAnh.objects.filter(da_xoa=False, quan_huyen=quan_duoc_giao, loai_su_co=chuyen_mon_giao)
             else:
                 danh_sach = PhanAnh.objects.none()
         except:
@@ -952,9 +971,14 @@ def xoa_tat_ca_thung_rac(request):
     else:
         # 2. Nhân viên: Chỉ dọn sạch thùng rác thuộc quận/huyện mình quản lý
         try:
-            quan_duoc_giao = user_dang_nhap.profile.quan_quan_ly
+            profile = user_dang_nhap.profile
+            quan_duoc_giao = profile.quan_quan_ly
+            chuyen_mon_giao = profile.chuyen_mon
             if quan_duoc_giao:
-                PhanAnh.objects.filter(da_xoa=True, quan_huyen=quan_duoc_giao).delete()
+                if chuyen_mon_giao == 'tong_hop':
+                    PhanAnh.objects.filter(da_xoa=True, quan_huyen=quan_duoc_giao).delete()
+                else:
+                    PhanAnh.objects.filter(da_xoa=True, quan_huyen=quan_duoc_giao, loai_su_co=chuyen_mon_giao).delete()
                 messages.success(request, f"🗑️ Đã dọn sạch thùng rác thuộc {quan_duoc_giao.ten_quan}!")
             else:
                 messages.error(request, "Lỗi: Bạn chưa được phân công khu vực quản lý.")
@@ -988,12 +1012,19 @@ def xuat_excel_lich_su(request):
     else:
         # Nhân viên: Chỉ lấy đúng Quận và Chuyên môn
         profile = user_dang_nhap.profile
-        lich_su = PhanAnh.objects.filter(
-            trang_thai=MA_TRANG_THAI, 
-            da_xoa=False,
-            quan_huyen=profile.quan_quan_ly,
-            loai_su_co=profile.chuyen_mon
-        ).order_by('-id')
+        if profile.chuyen_mon == 'tong_hop':
+            lich_su = PhanAnh.objects.filter(
+                trang_thai=MA_TRANG_THAI, 
+                da_xoa=False,
+                quan_huyen=profile.quan_quan_ly
+            ).order_by('-id')
+        else:
+            lich_su = PhanAnh.objects.filter(
+                trang_thai=MA_TRANG_THAI, 
+                da_xoa=False,
+                quan_huyen=profile.quan_quan_ly,
+                loai_su_co=profile.chuyen_mon
+            ).order_by('-id')
 
     # ==========================================
 
@@ -1031,7 +1062,17 @@ def xuat_excel_lich_su(request):
 @require_POST
 @staff_member_required(login_url='login')
 def xoa_tat_ca_lich_su(request):
-    # Thay vì xóa vĩnh viễn, mình đổi trạng thái da_xoa=True để ném vào thùng rác cho an toàn
-    PhanAnh.objects.filter(trang_thai='da_xu_ly', da_xoa=False).update(da_xoa=True)
-    messages.success(request, "Đã dọn dẹp sạch sẽ toàn bộ lịch sử!")
+    user_dang_nhap = request.user
+    if user_dang_nhap.is_superuser:
+        # Thay vì xóa vĩnh viễn, mình đổi trạng thái da_xoa=True để ném vào thùng rác cho an toàn
+        PhanAnh.objects.filter(trang_thai='da_xu_ly', da_xoa=False).update(da_xoa=True)
+        messages.success(request, "Đã dọn dẹp sạch sẽ toàn bộ lịch sử!")
+    else:
+        profile = user_dang_nhap.profile
+        if profile.chuyen_mon == 'tong_hop':
+            PhanAnh.objects.filter(trang_thai='da_xu_ly', da_xoa=False, quan_huyen=profile.quan_quan_ly).update(da_xoa=True)
+        else:
+            PhanAnh.objects.filter(trang_thai='da_xu_ly', da_xoa=False, quan_huyen=profile.quan_quan_ly, loai_su_co=profile.chuyen_mon).update(da_xoa=True)
+        messages.success(request, f"Đã dọn dẹp sạch sẽ lịch sử của khu vực {profile.quan_quan_ly.ten_quan}!")
+        
     return redirect('trang_quan_ly')
