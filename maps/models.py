@@ -72,22 +72,7 @@ class PhanAnh(models.Model):
 
     @property
     def ma_su_co(self):
-        # 1. Mã lĩnh vực
-        dict_ma = {
-            'an_ninh': 'ANCN',
-            'dien_luc': 'DL',
-            'cap_thoat_nuoc': 'CTN',
-            'cay_xanh': 'CX',
-            'chieu_sang': 'CS',
-            'giao_thong': 'GT',
-            'khac': 'KHAC',
-        }
-        ma_lv = dict_ma.get(self.loai_su_co, 'KHAC')
-
-        # 2. Ngày tháng năm
-        ngay = self.thoi_gian.strftime("%d%m%Y") if self.thoi_gian else ""
-
-        # 3. Quận huyện
+        # 1. Quận huyện
         ma_qh = "KXD" # Không xác định
         if self.quan_huyen:
             ten_qh = self.quan_huyen.ten_quan.lower()
@@ -106,20 +91,17 @@ class PhanAnh(models.Model):
             else:
                 ma_qh = "".join(word[0].upper() for word in ten_qh.split())
 
-        # 4. Tính số thứ tự trong ngày
+        # 2. Tính số thứ tự 
         so_thu_tu = 1
-        if self.id and self.thoi_gian:
+        if self.id:
+            # Lấy tất cả hồ sơ của quận này tạo trước hoặc bằng thời gian của hồ sơ hiện tại
             so_thu_tu = PhanAnh.objects.filter(
-                loai_su_co=self.loai_su_co,
                 quan_huyen=self.quan_huyen,
-                thoi_gian__year=self.thoi_gian.year,
-                thoi_gian__month=self.thoi_gian.month,
-                thoi_gian__day=self.thoi_gian.day,
                 id__lte=self.id
             ).count()
 
-        # Gộp lại theo định dạng chuẩn: Mã_Ngày_Quận_SốThứTự
-        return f"{ma_lv}_{ngay}_{ma_qh}_{so_thu_tu}"
+        # Trả về định dạng: Quận_SốThứTự (ví dụ: TPTĐ_1, TPTĐ_2)
+        return f"{ma_qh}_{so_thu_tu}"
 
     class Meta:
         verbose_name = "Tin Phản Ánh"
