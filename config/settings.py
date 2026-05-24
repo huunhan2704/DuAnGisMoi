@@ -32,7 +32,9 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',
     'django.contrib.staticfiles',
+    'cloudinary',
     'ckeditor',
     'ckeditor_uploader',
     'maps',
@@ -228,3 +230,18 @@ if not DEBUG:
 
     # Render đặt HTTPS proxy, cần trust header này
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# ==============================================================
+# CLOUDINARY MEDIA STORAGE
+# ==============================================================
+import urllib.parse
+cloudinary_url = config('CLOUDINARY_URL', default='')
+if cloudinary_url:
+    parsed = urllib.parse.urlparse(cloudinary_url)
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': parsed.hostname,
+        'API_KEY': parsed.username,
+        'API_SECRET': parsed.password,
+    }
+    # Chỉ định Django dùng Cloudinary cho các trường ImageField, FileField
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
