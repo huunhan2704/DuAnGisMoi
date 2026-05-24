@@ -819,6 +819,30 @@ def cskh(request):
             
         phieu.save()
 
+        # Tự động gửi Email thông báo cho Admin
+        admin_email = getattr(settings, 'EMAIL_HOST_USER', 'admin@urbanmanager.com')
+        try:
+            send_mail(
+                subject=f"[CSKH] Yêu cầu hỗ trợ mới từ {ho_ten}",
+                message=f"""Hệ thống vừa nhận được một yêu cầu hỗ trợ CSKH mới!
+
+Thông tin người gửi:
+- Họ tên: {ho_ten}
+- Email: {email}
+- Số điện thoại: {sdt}
+
+Vấn đề: {phieu.get_chu_de_display()}
+Nội dung chi tiết:
+"{noi_dung}"
+
+Vui lòng truy cập trang Quản trị để xử lý yêu cầu này.""",
+                from_email=admin_email,
+                recipient_list=[admin_email],
+                fail_silently=True,
+            )
+        except Exception as e:
+            pass # Tránh lỗi làm sập trang nếu gửi mail thất bại
+
         # 3. Thông báo thành công
         messages.success(request, "Đã gửi yêu cầu hỗ trợ! Chúng tôi sẽ phản hồi qua Email sớm nhất.")
         return redirect('cskh') # Load lại trang để xóa form
