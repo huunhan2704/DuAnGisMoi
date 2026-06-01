@@ -348,6 +348,11 @@
             currentOrigin = latlng; // Lưu tọa độ vào não để dành cho nút Chỉ đường
             // Vẽ cái chấm mới và hiện bảng tên
             originMarker = L.marker(latlng).addTo(map).bindPopup("📍 " + tenDiaDiem).openPopup();
+            originMarker.on('click', function(e) {
+                if (typeof isBufferMode !== 'undefined' && isBufferMode) {
+                    map.fire('click', e);
+                }
+            });
         }
         // Fix lỗi 403 bằng CartoDB
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {

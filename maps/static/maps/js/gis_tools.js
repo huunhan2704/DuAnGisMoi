@@ -156,6 +156,11 @@ function renderMap(dataToRender) {
                     </div>`;
 
                 var marker = L.circleMarker([c.lat, c.lng], { color: 'white', fillColor: color, fillOpacity: 1, radius: 8, weight: 2 }).bindPopup(popupContent);
+                marker.on('click', function(e) {
+                    if (typeof isBufferMode !== 'undefined' && isBufferMode) {
+                        map.fire('click', e);
+                    }
+                });
                 targetLayer.addLayer(marker);
             });
         }
