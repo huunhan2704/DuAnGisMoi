@@ -429,21 +429,24 @@
         L.control.layers(null, overlayMaps, {position: 'topleft'}).addTo(map);
 
         // 4. Đổ dữ liệu từ Database
-        var allData = [
-            {% for p in phan_anh %}
-                { 
-                    id: "{{ p.id }}",
-                    ma_su_co: "{{ p.ma_su_co }}",
-                    title: "{{ p.tieu_de|escapejs }}", 
-                    address: "{{ p.dia_chi|escapejs }}",
-                    desc: "{{ p.mo_ta|escapejs }}",
-                    image: "{% if p.hinh_anh %}{{ p.hinh_anh.url }}{% endif %}",
-                    status_text: "{{ p.get_trang_thai_display }}",
-                    status_code: "{{ p.trang_thai }}",
-                    coords: {% if p.du_lieu_toa_do %}{{ p.du_lieu_toa_do|safe }}{% else %}[]{% endif %}
-                }{% if not forloop.last %},{% endif %}
-            {% endfor %}
-        ];
+        var allData = [];
+        {% for p in phan_anh %}
+        try {
+            allData.push({ 
+                id: "{{ p.id }}",
+                ma_su_co: "{{ p.ma_su_co }}",
+                title: "{{ p.tieu_de|escapejs }}",
+                address: "{{ p.dia_chi|escapejs }}",
+                desc: "{{ p.mo_ta|escapejs }}",
+                image: "{% if p.hinh_anh %}{{ p.hinh_anh.url|escapejs }}{% else %}''{% endif %}",
+                status_text: "{{ p.get_trang_thai_display }}",
+                status_code: "{{ p.trang_thai }}",
+                coords: JSON.parse("{{ p.du_lieu_toa_do|escapejs }}" || "[]")
+            });
+        } catch (e) {
+            console.error("Lỗi dữ liệu tại sự cố {{ p.ma_su_co }}:", e);
+        }
+        {% endfor %}
         // (Dữ liệu bản đồ đã được tải - console.log đã xóa)
         var arrChoDuyet = [], arrDangXuLy = [], arrDaXong = [];
         var heatLayerChoDuyet, heatLayerDangXuLy, heatLayerDaXong;
@@ -492,9 +495,11 @@
         
 
         // 6. Sự kiện Heatmap & GIS
-        document.getElementById('toggleHeatmap').addEventListener('change', syncHeatmap);
-        map.on('overlayadd', syncHeatmap); 
-        map.on('overlayremove', syncHeatmap);
+        if (typeof syncHeatmap !== 'undefined') {
+            document.getElementById('toggleHeatmap').addEventListener('change', syncHeatmap);
+            map.on('overlayadd', syncHeatmap); 
+            map.on('overlayremove', syncHeatmap);
+        }
 
         document.getElementById('btnBufferMode').addEventListener('click', function() {
             isBufferMode = true;
